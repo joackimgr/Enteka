@@ -1,0 +1,42 @@
+import { useState } from "react"
+import logo from "../assets/EntekaLogo.png"
+import { useNavigate } from "react-router-dom"
+import { loginDataPython } from "./SendDataPython.jsx"
+
+export default function LoginForm({onSwitch, isAuthenticated}) {
+    let navigate = useNavigate()
+    const [formData, setFormData] = useState({
+        username: '',
+        password: ''
+    })
+
+    async function handleSubmit(e) {
+        e.preventDefault()
+        let data = await loginDataPython(formData)
+        if (data.auth) {
+            isAuthenticated(true)
+            navigate("/home")
+        }
+        else {
+            console.warn(data.message)
+        }
+    }
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prevState => ({
+            ...prevState,
+            [name]: value
+        }));
+    };
+
+    return <form onSubmit={handleSubmit}  id="logInForm" className="flex flex-col bg-[#272B3D] justify-center items-center w-112.5 h-129.5 my-5 mx-auto rounded-[1.6rem] gap-4"> 
+            <img src={logo} alt="EntekaLogo" id="logoOnLogInForm" className="mt-6 w-30 h-30"></img>
+            <label htmlFor="logInUsername" className="text-2xl text-[#F0F0F5]">Username</label>
+            <input value={formData.username} type="text" name="username" id="logInUsername" onChange={handleChange} className="w-62.5 text-[#F0F0F5] border-none rounded-[1.1rem] h-9.25 bg-[#2F3347] p-0 box-border focus:outline-none pl-3.5 focus:box-border" required/>
+            <label htmlFor="logInPassword" className="text-2xl text-[#F0F0F5]">Password</label>
+            <input value={formData.password} type="password" name="password" id="logInPassword" onChange={handleChange} className="w-62.5 text-[#F0F0F5] border-none rounded-[1.1rem] h-9.25 bg-[#2F3347] p-0 box-border focus:outline-none pl-3.5 focus:box-border" required/>
+            <p className="my-2.5 text-xl text-[#F0F0F5]">Don't have an account? <span id="signUp" onClick={onSwitch} className="cursor-pointer text-[#7C6AF7]">Sign Up!</span></p>
+            <input type="submit" value="Login" id="logInBtn" className="w-30 h-12.5 text-xl border-none rounded-[1.2rem] bg-[#7C6AF7] mb-4.5 cursor-pointer transition-colors hover:bg-[#6A59E0]"/>
+         </form>
+}

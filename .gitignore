@@ -1,0 +1,46 @@
+# Node
+node_modules/
+.pnpm-debug.log*
+.npmrc
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-store/
+
+# Build output
+dist/
+coverage/
+
+# Vite
+.vite/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+*.egg
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+.env/
+
+# OS files
+.DS_Store
+
+# Logs
+logs/
+*.log
+
+# IDE/editor
+.vscode/
+.idea/
+
+Enteka.db
