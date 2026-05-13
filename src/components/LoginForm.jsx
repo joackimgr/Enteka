@@ -5,20 +5,24 @@ import { loginDataPython } from "./SendDataPython.jsx"
 
 export default function LoginForm({onSwitch, isAuthenticated}) {
     let navigate = useNavigate()
+
     const [formData, setFormData] = useState({
         username: '',
         password: ''
     })
 
+    const [errorMessage, setErrorMessage] = useState('')
+
     async function handleSubmit(e) {
         e.preventDefault()
         let data = await loginDataPython(formData)
         if (data.auth) {
+            setErrorMessage("")
             isAuthenticated(true)
             navigate("/home")
         }
         else {
-            console.warn(data.message)
+            setErrorMessage(data.message)
         }
     }
 
@@ -36,6 +40,9 @@ export default function LoginForm({onSwitch, isAuthenticated}) {
             <input value={formData.username} type="text" name="username" id="logInUsername" onChange={handleChange} className="w-62.5 text-[#F0F0F5] border-none rounded-[1.1rem] h-9.25 bg-[#2F3347] p-0 box-border focus:outline-none pl-3.5 focus:box-border" required/>
             <label htmlFor="logInPassword" className="text-2xl text-[#F0F0F5]">Password</label>
             <input value={formData.password} type="password" name="password" id="logInPassword" onChange={handleChange} className="w-62.5 text-[#F0F0F5] border-none rounded-[1.1rem] h-9.25 bg-[#2F3347] p-0 box-border focus:outline-none pl-3.5 focus:box-border" required/>
+            {errorMessage &&
+                <p className="text-red-400 text-sm">{errorMessage}</p>
+            }
             <p className="my-2.5 text-xl text-[#F0F0F5]">Don't have an account? <span id="signUp" onClick={onSwitch} className="cursor-pointer text-[#7C6AF7]">Sign Up!</span></p>
             <input type="submit" value="Login" id="logInBtn" className="w-30 h-12.5 text-xl border-none rounded-[1.2rem] bg-[#7C6AF7] mb-4.5 cursor-pointer transition-colors hover:bg-[#6A59E0]"/>
          </form>

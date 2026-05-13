@@ -12,6 +12,8 @@ export default function SignUpForm({onSwitch, isAuthenticated}) {
         password: ''
     });
 
+    const [errorMessage, setErrorMessage] = useState('')
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prevState => ({
@@ -24,11 +26,12 @@ export default function SignUpForm({onSwitch, isAuthenticated}) {
         e.preventDefault()
         let data = await signUpDataPython(formData)
         if (data.auth) {
+            setErrorMessage("")
             isAuthenticated(true)
             navigate("/home")
         }
         else {
-            console.warn(data.message)
+            setErrorMessage(data.message)
         }
         }
 
@@ -43,7 +46,9 @@ export default function SignUpForm({onSwitch, isAuthenticated}) {
                 
                 <label htmlFor="signUpPassword" className="text-2xl text-[#F0F0F5]">Password</label>
                 <input value={formData.password} onChange={handleChange} type="password" name="password" id="signUpPassword" className="w-62.5 text-[#F0F0F5] border-none rounded-[1.1rem] h-9.25 bg-[#2F3347] p-0 box-border focus:outline-none pl-3.5 focus:box-border" required />
-                
+                {errorMessage &&
+                    <p className="text-red-400 text-sm">{errorMessage}</p>
+                }
                 <p className="my-2.5 text-xl text-[#F0F0F5]">Already have an account? <span id="logIn" onClick={onSwitch} className="cursor-pointer text-[#7C6AF7]">Log In!</span></p>
                 
                 <input type="submit" value="Sign Up!" id="signUpBtn" className="w-30 h-12.5 text-xl border-none rounded-[1.2rem] bg-[#7C6AF7] mb-4.5 cursor-pointer transition-colors hover:bg-[#6A59E0]"/>
