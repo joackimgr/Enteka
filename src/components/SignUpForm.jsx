@@ -3,7 +3,7 @@ import { useState } from "react"
 import { useNavigate } from "react-router-dom";
 import { signUpDataPython } from "./SendDataPython"
 
-export default function SignUpForm({onSwitch, isAuthenticated}) {
+export default function SignUpForm({onSwitch, setIsAuthenticated, setUserName}) {
     let navigate = useNavigate()
 
     const [formData, setFormData] = useState({
@@ -27,7 +27,8 @@ export default function SignUpForm({onSwitch, isAuthenticated}) {
         let data = await signUpDataPython(formData)
         if (data.auth) {
             setErrorMessage("")
-            isAuthenticated(true)
+            setIsAuthenticated(true)
+            setUserName(formData.username)
             navigate("/home")
         }
         else {

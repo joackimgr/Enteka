@@ -6,19 +6,12 @@ import { useState } from 'react'
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-
-  let homePage = function() {
-    if (isAuthenticated) {
-      return (
-        <Route path='/home' element={<HomePage />} />
-      )
-    }
-  }
+  const [userName, setUserName] = useState('')
 
   return (
       <Routes>
-        <Route path='/' element={<AuthPage isAuthenticated={setIsAuthenticated}/>} />
-        {homePage()}   
+        <Route path='/' element={<AuthPage setIsAuthenticated={setIsAuthenticated} setUserName={setUserName}/>} />
+        <Route path='/home' element={isAuthenticated ? <HomePage userName={userName}/> : <Navigate to='/' replace />} /> 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
   )

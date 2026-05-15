@@ -5,7 +5,7 @@ import SettingsPanel from "../components/SettingsPanel"
 import NewMessage from "../components/NewMessage"
 import { useState } from "react"
 
-export default function HomePage() {
+export default function HomePage({userName}) {
     const [chatMode, setChatMode] = useState(true)
     const [welcome, setWelcome] = useState(true)
     const [activeSettings, setActiveSettings] = useState(false)
@@ -24,17 +24,17 @@ export default function HomePage() {
 
     return (
         <div className="min-h-screen flex flex-col">
-            <NavBar toggleChatMode={toggleChatMode}/>
+            <NavBar toggleChatMode={toggleChatMode} />
             <section className="grid grid-cols-[1fr_5fr] m-2.75 gap-2.75 flex-1">
-                <Sidebar chatMode={chatMode} toggleStatus={toggleStatus}/>
+                <Sidebar chatMode={chatMode} toggleStatus={toggleStatus} />
                 {chatMode && welcome &&
-                    <WelcomeView turnOffWelcomeMode={turnOffWelcomeMode}/>
+                    <WelcomeView turnOffWelcomeMode={turnOffWelcomeMode} userName={userName} />
                 }
                 {chatMode && !welcome &&
                     <NewMessage />
                 }
                 {!chatMode &&
-                    <SettingsPanel activeSettings={activeSettings}/>
+                    <SettingsPanel activeSettings={activeSettings} />
                 }
             </section>
         </div>

@@ -3,7 +3,7 @@ import logo from "../assets/EntekaLogo.png"
 import { useNavigate } from "react-router-dom"
 import { loginDataPython } from "./SendDataPython.jsx"
 
-export default function LoginForm({onSwitch, isAuthenticated}) {
+export default function LoginForm({onSwitch, setIsAuthenticated, setUserName}) {
     let navigate = useNavigate()
 
     const [formData, setFormData] = useState({
@@ -18,7 +18,8 @@ export default function LoginForm({onSwitch, isAuthenticated}) {
         let data = await loginDataPython(formData)
         if (data.auth) {
             setErrorMessage("")
-            isAuthenticated(true)
+            setIsAuthenticated(true)
+            setUserName(formData.username)
             navigate("/home")
         }
         else {
