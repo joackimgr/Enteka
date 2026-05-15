@@ -10,6 +10,7 @@ export const loginDataPython = async (data) => {
         return response.data
     } catch (error) {
         console.error('Error sending data:', error);
+        return { auth: false, message: 'Network error. Try again.' }
     }
 }
 
@@ -24,5 +25,6 @@ export const signUpDataPython = async (data) => {
         return response.data
     } catch (error) {
         console.error('Error sending data:', error);
+        return { auth: false, message: 'Network error. Try again.' }
     }
 }
