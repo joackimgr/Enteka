@@ -15,8 +15,8 @@ def create_table(conn):
         sql_create_users_table = """
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT NOT NULL,
-            email TEXT NOT NULL,
+            username TEXT NOT NULL UNIQUE,
+            email TEXT NOT NULL UNIQUE,
             password TEXT NOT NULL
         );
         """
@@ -38,16 +38,20 @@ def insert_user(conn, username, email, password):
         print("Failed to insert user.")
         print(e)
 
-def user_exists(conn, username, password):
+def get_user_hash(conn, username):
     try:
-        sql = "SELECT id FROM users WHERE username = ? AND password = ?"
+        sql = "SELECT password FROM users WHERE username = ?"
         cursor = conn.cursor()
-        cursor.execute(sql, (username, password))
-        return cursor.fetchone() is not None
+        cursor.execute(sql, (username,))
+        result = cursor.fetchone()
+        if result:
+            return result[0]
+        return None
+    
     except sqlite3.Error as e:
-        print("Failed to check if user exists.")
+        print("Failed to get user hash.")
         print(e)
-        return False
+        return None
 
 if __name__ == "__main__":
     database = "Enteka.db"
