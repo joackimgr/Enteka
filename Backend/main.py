@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
-from database import create_table, create_connection, insert_user, user_exists
+from database import create_table, create_connection, insert_user, get_user_hash
+from encryption import hashing, verify
 
 
 conn = create_connection("Enteka.db")
@@ -18,21 +19,6 @@ class UserLogin(BaseModel):
     username: str
     password: str
 
-"""
-CORSMiddleware(
-    app,
-    allow_origins=("http://localhost:5173", "http://localhost:8000"),
-    allow_methods=("GET", "POST", "PUT", "DELETE", "OPTIONS"),
-    allow_headers=["*"],
-    allow_credentials=False,
-    allow_origin_regex=None,
-    allow_private_network=True,
-    expose_headers=[],
-    max_age=600,
-    access_control_allow_origin="*",
-)
-"""
-
 app.add_middleware(CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://localhost:8000"],
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -46,8 +32,11 @@ async def read_root():
 @app.post("/signup")
 async def signup(user_data: UserSignUp):
     if conn is not None:
-        if not user_exists(conn, user_data.username, user_data.password):
-            insert_user(conn, user_data.username, user_data.email, user_data.password)
+        hashed_password = get_user_hash(conn, user_data.username)
+
+        if hashed_password is None:
+            hashing_password = hashing(user_data.password)
+            insert_user(conn, user_data.username, user_data.email, hashing_password)
             return {"message": "User created successfully!", "auth": True}
         else:
             return {"message": "User already exists.", "auth": False}
@@ -57,7 +46,10 @@ async def signup(user_data: UserSignUp):
 @app.post("/login")
 async def login(user_data: UserLogin):
     if conn is not None:
-        if user_exists(conn, user_data.username, user_data.password):
+        stored_hash = get_user_hash(conn, user_data.username)
+        if stored_hash is None:
+            return {"message": "Invalid username or password.", "auth": False}
+        if verify(user_data.password, stored_hash):
             return {"message": "User authenticated successfully!", "auth": True}
         else:
             return {"message": "Invalid username or password.", "auth": False}
