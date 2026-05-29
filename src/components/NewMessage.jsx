@@ -1,6 +1,8 @@
+import { useState, useEffect } from "react"
 import profile from "../assets/profile_icon.png"
 
 export default function NewMessage() {
+    const [searchText, setSearchText] = useState('')
 
     const users = [1, 2, 3]
 
@@ -16,12 +18,22 @@ export default function NewMessage() {
         )
     })
 
+    function handleSearchText(e) {
+        setSearchText(e.target.value)
+    }
+
+    useEffect(() => {
+        if (searchText !== "") {
+            console.log("Call Backend")
+        }
+    }, [searchText])
+
     return (
 
         <div className="bg-[#272B3D] flex flex-col items-center justify-start rounded-4xl p-2.75 text-white">
             <div className="flex items-center w-full bg-[#2F3347] h-auto p-2.75 text-4xl font-light box-border rounded-[1.2rem] gap-2.75 mb-2.75">
                 <label htmlFor="recipientName">To:</label>
-                <input type="text" id="recipientName" className="w-full h-full box-border rounded-[1.2rem] border-0 bg-[#2F3347] text-[30px] text-white focus:outline-none"/>
+                <input type="text" id="recipientName" onChange={handleSearchText} className="w-full h-full box-border rounded-[1.2rem] border-0 bg-[#2F3347] text-[30px] text-white focus:outline-none"/>
             </div>
             <div className="flex flex-col p-2.75 w-full bg-[#2F3347] box-border rounded-[1.2rem]">
                 <p className="text-2xl mt-1.25 mb-3.75">Suggestions:</p>
