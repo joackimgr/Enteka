@@ -1,7 +1,7 @@
-import logo from "../assets/EntekaLogo.png"
+import logo from "../../assets/EntekaLogo.png"
 import { useState } from "react"
 import { useNavigate } from "react-router-dom";
-import { signUpDataPython } from "./SendDataPython"
+import { signUpDataPython } from "../api/client"
 
 export default function SignUpForm({onSwitch, setIsAuthenticated, setUserName}) {
     let navigate = useNavigate()

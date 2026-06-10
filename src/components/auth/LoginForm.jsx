@@ -1,7 +1,7 @@
 import { useState } from "react"
-import logo from "../assets/EntekaLogo.png"
+import logo from "../../assets/EntekaLogo.png"
 import { useNavigate } from "react-router-dom"
-import { loginDataPython } from "./SendDataPython.jsx"
+import { loginDataPython } from "../api/client"
 
 export default function LoginForm({onSwitch, setIsAuthenticated, setUserName}) {
     let navigate = useNavigate()

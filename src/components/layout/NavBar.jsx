@@ -1,6 +1,6 @@
-import logo from "../assets/EntekaLogo.png"
-import settings from "../assets/settings_icon.png"
-import profile from "../assets/profile_icon.png"
+import logo from "../../assets/EntekaLogo.png"
+import settings from "../../assets/settings_icon.png"
+import profile from "../../assets/profile_icon.png"
 
 export default function NavBar(props) {
 

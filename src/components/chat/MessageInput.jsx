@@ -1,4 +1,4 @@
-import send from "../assets/send.png"
+import send from "../../assets/send.png"
 
 export default function MessageInput() {
 

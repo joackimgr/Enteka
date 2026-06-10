@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import profile from "../assets/profile_icon.png"
+import profile from "../../assets/profile_icon.png"
 
 export default function NewMessage() {
     const [searchText, setSearchText] = useState('')

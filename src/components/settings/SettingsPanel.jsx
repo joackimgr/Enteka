@@ -1,4 +1,4 @@
-import settings from "../assets/settings_icon.png"
+import settings from "../../assets/settings_icon.png"
 
 export default function SettingsPanel(props) {
     const options = ["username", "password", "email", "profile picture"]

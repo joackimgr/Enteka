@@ -1,5 +1,5 @@
-import sad from "../assets/sad_emoji.png"
-import profile from "../assets/profile_icon.png"
+import sad from "../../assets/sad_emoji.png"
+import profile from "../../assets/profile_icon.png"
 
 export default function Sidebar(props) {
 

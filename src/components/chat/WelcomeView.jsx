@@ -1,4 +1,4 @@
-import profile from "../assets/profile_icon.png"
+import profile from "../../assets/profile_icon.png"
 
 export default function WelcomeView(props) {
 

@@ -1,8 +1,8 @@
-import  NavBar  from "../components/NavBar"
-import  Sidebar  from "../components/Sidebar"
-import  WelcomeView  from "../components/WelcomeView"
-import SettingsPanel from "../components/SettingsPanel"
-import NewMessage from "../components/NewMessage"
+import NavBar from "../components/layout/NavBar"
+import Sidebar from "../components/layout/Sidebar"
+import WelcomeView from "../components/chat/WelcomeView"
+import SettingsPanel from "../components/settings/SettingsPanel"
+import NewMessage from "../components/chat/NewMessage"
 import { useState } from "react"
 
 export default function HomePage({userName}) {
