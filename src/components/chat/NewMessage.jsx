@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import profile from "../../assets/profile_icon.png"
+import { CircleUserRound } from "lucide-react"
 
 export default function NewMessage() {
     const [searchText, setSearchText] = useState('')
@@ -11,7 +11,7 @@ export default function NewMessage() {
         return (
         <div key={i} className="flex items-center justify-between bg-[#272B3D] rounded-[1.2rem] p-2.75 mb-2.75 text-3xl cursor-pointer hover:bg-[#363B52] transition-colors duration-100 ease-in">
             <div className="flex items-center gap-2.75 ml-5 font-light">
-                <img src={profile} alt={`User${i} Icon`} className="w-17.5 h-17.5"/>
+                <CircleUserRound size={70} alt="Profile" className="text-white" />
                 <p>{`User${i}`}</p>
             </div>
             <p>{`Start a chat with User${i}`}</p>

@@ -1,4 +1,4 @@
-import settings from "../../assets/settings_icon.png"
+import { Cog } from "lucide-react"
 
 export default function SettingsPanel(props) {
     const options = ["username", "password", "email", "profile picture"]
@@ -16,7 +16,7 @@ export default function SettingsPanel(props) {
         <>
             {!props.activeSettings && 
                 <div className="flex items-center justify-center">
-                    <img src={settings} alt="Settings Icon" className="w-50 h-50"/>
+                    <Cog size={200} alt="Settings Icon" className="text-white"/>
                 </div>
             }
             {props.activeSettings && 

@@ -1,6 +1,5 @@
 import logo from "../../assets/EntekaLogo.png"
-import settings from "../../assets/settings_icon.png"
-import profile from "../../assets/profile_icon.png"
+import { Cog, CircleUserRound } from 'lucide-react'
 
 export default function NavBar(props) {
 
@@ -11,8 +10,8 @@ export default function NavBar(props) {
                 <p id="logoText" className="text-white text-[1.6rem]">ENTEKA</p>
             </div>
             <div className="flex flex-row justify-center items-center gap-6.25 mr-6.25">
-                <img onClick={props.toggleChatMode} src={settings} alt="Settings" className="cursor-pointer w-12.5 h-12.5" />
-                <img src={profile} alt="Profile" className="cursor-pointer w-11.25 h-11.25" />
+                <Cog size={50} onClick={props.toggleChatMode} alt='Settings' className="cursor-pointer text-white"/>
+                <CircleUserRound size={50} alt="Profile" className="cursor-pointer text-white" />
             </div>
         </nav>
     )
