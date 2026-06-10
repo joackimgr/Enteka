@@ -1,0 +1,11 @@
+export default function MessageBubble({text, timestamp, isMine}) {
+
+    return (
+        <div className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
+            <div className={`${isMine ? "bg-[#7C6AF7]" : "bg-[#2F3347]"} px-4 py-2 rounded-2xl max-w-[70%]`}>
+                <p className="text-white">{text}</p>
+                <p className="text-xs text-gray-400">{timestamp}</p>
+            </div>
+        </div>
+    )
+}
