@@ -12,3 +12,25 @@
         height: 100%;
     }
 }
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2F3347;
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #40465D;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2F3347 transparent;
+}
