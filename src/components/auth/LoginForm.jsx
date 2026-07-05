@@ -20,6 +20,7 @@ export default function LoginForm({onSwitch, setIsAuthenticated, setUserName}) {
             setErrorMessage("")
             setIsAuthenticated(true)
             setUserName(formData.username)
+            localStorage.setItem("token", data.token)
             navigate("/home")
         }
         else {

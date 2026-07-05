@@ -29,6 +29,7 @@ export default function SignUpForm({onSwitch, setIsAuthenticated, setUserName}) 
             setErrorMessage("")
             setIsAuthenticated(true)
             setUserName(formData.username)
+            localStorage.setItem("token", data.token)
             navigate("/home")
         }
         else {

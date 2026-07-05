@@ -28,3 +28,15 @@ export const signUpDataPython = async (data) => {
         return { auth: false, message: 'Network error. Try again.' }
     }
 }
+
+export const verifyToken = async (token) => {
+    try {
+        const response = await axios.post('http://localhost:8000/verify', {
+            token: token
+        })
+        return response.data
+    } catch (error) {
+        console.error('Error verifying token', error)
+        return {auth: false, message: 'Network error. Try again.'}
+    }
+}
