@@ -2,17 +2,9 @@
 
 ## Project overview
 
-EntekaApp is a real-time messaging app being migrated from vanilla JavaScript (Webpack) to React. The frontend is built by Joackim (learning React, currently knows `useState`, `useEffect`, props, and basic React Router). The backend is built by a friend using Python (FastAPI).
+EntekaApp is a real-time messaging app being migrated from vanilla JavaScript (Webpack) to React.
 
 This file exists to give any AI coding agent the context needed to continue helping without re-discovering the same decisions.
-
-## Tutoring style — IMPORTANT
-
-Joackim is explicitly learning React. Unless told otherwise:
-- **Do not write code unless explicitly asked.** Act as a tutor: explain concepts, ask guiding questions, let Joackim write the code himself.
-- Confirm understanding before moving to the next component.
-- Only step in with full code when Joackim asks directly for it (e.g. styling syntax, git commands, config files).
-- Build order matters — one component at a time, reviewed before moving to the next.
 
 ## Tech stack
 
@@ -130,7 +122,4 @@ src/
 - Feature branches: `feature/short-description` (created with `git checkout -b feature/...`)
 - MIT license, repo is public and intentionally open source
 
-## Known environment notes
 
-- Joackim is on Windows for the frontend machine (SSH key path issues use `C:\Users\joack\.ssh\...`), and a friend's backend machine is Mac-based (zsh, `.venv` auto-activation issue previously resolved by removing the `source .venv/bin/activate` line from `.zshrc`).
-- Dev servers: frontend on `localhost:5173` (Vite default), backend on `localhost:8000` (FastAPI default).
