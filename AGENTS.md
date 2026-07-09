@@ -58,11 +58,11 @@ src/
     chat/
       WelcomeView.jsx     — "Hello, {userName}!" + "Start a new chat!" button (calls turnOffWelcomeMode prop)
       NewMessage.jsx      — "To:" recipient input + suggestions/search list. Has searchText, users, suggestions state. Two useEffects: one on mount (load suggestions, currently console.log placeholder), one on [searchText] (search backend, currently console.log placeholder, guarded by `searchText !== ""`)
-      ChatView.jsx        — composes ChatHeader + MessageList + MessageInput. Composition component for the chat screen.
+      ChatView.jsx        — composes ChatHeader + MessageList + MessageInput. Owns messages state, passes addMessage function to MessageInput.
       ChatHeader.jsx      — profile pic + username (currently hardcoded "Test Username")
       MessageList.jsx     — renders MessageBubble list from mock messages, scrollable (flex-1 + overflow-y-auto + min-h-0 chain, overflow-hidden on parent)
       MessageBubble.jsx   — { text, timestamp, isMine } → right-aligned purple bubble if isMine, left-aligned dark bubble otherwise
-      MessageInput.jsx    — text input + send icon, styled as pill; NOT yet wired to add messages to ChatView's state
+      MessageInput.jsx    — text input + send icon, styled as pill; wired to add messages to ChatView's state via SendMessage prop on Enter/click
     settings/
       SettingsPanel.jsx   — big settings icon by default; account options list (username/password/email/profile picture) when activeSettings prop is true
     api/
@@ -104,16 +104,16 @@ src/
 
 ## Frontend TODO (in rough priority order)
 
-1. Wire `MessageInput` to actually call the "add message" function passed down from `ChatView` (in progress — function not yet written)
+1. ~~Wire `MessageInput` to actually call the "add message" function~~ → done, ChatView owns messages state + addMessage, MessageInput calls it on Enter/click
 2. Clicking a user card in `NewMessage` should call `setSelectedChat` (passed down from HomePage) to open `ChatView`
 3. Back button in `ChatHeader` to reset `selectedChat` to `null` (return to WelcomeView)
 4. Replace `NewMessage`'s console.log placeholders with real axios calls once backend search/suggestions endpoints exist
 5. Update `.map()` keys in NewMessage from index-based to `user.id` once real user objects arrive (shape will be `{ id, username }`, not bare numbers)
-6. Replace hardcoded "Test Username" in ChatHeader with real selected chat user
+6. Replace hardcoded "Test Username" in ChatHeader with real selected chat user (ChatHeader receives no props yet)
 7. Sidebar: replace empty-state with real conversation list once `/conversations` exists
 8. WebSocket integration for real-time messages
 9. ~~Move `SendDataPython.jsx` to `src/services/api.js`~~ → done, renamed to `src/components/api/client.js`
-10. Finish migrating leftover old-palette colors (see Color palette section) in Sidebar settings cards etc.
+10. Finish migrating leftover old-palette colors in Sidebar settings cards (`#40465d` → `#2F3347`, `#3a3f54` → `#363B52`)
 11. ~~Login should eventually store/use JWT token once backend issues one~~ → done, JWT fully wired on both backend and frontend
 
 ## Git conventions
