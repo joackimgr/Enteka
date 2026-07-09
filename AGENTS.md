@@ -87,7 +87,9 @@ src/
 - `POST /login` — { username, password } → looks up hash, verifies with bcrypt, returns JWT token → { auth, token, username }
 - `POST /verify` — { token } → verifies JWT, returns username → { auth, username }
 - `GET /` — health check
+- `GET /users/search?q=username` — searches users by username prefix via `search_users(conn, query)` in `database.py`, returns `[{ id, username }]` or `null`
 - `users` table: id, username (UNIQUE), email (UNIQUE), password (hashed)
+- `database.py` functions: `create_connection`, `create_table`, `insert_user`, `get_user_hash`, `search_users`
 - CORS enabled for localhost:5173 and localhost:8000
 
 **Known issues fixed so far:**
@@ -96,7 +98,6 @@ src/
 - ~~Signup checked username+password together~~ → fixed, now checks username only via `get_user_hash`
 
 **Not yet implemented (backend):**
-- `GET /users/search?q=username` — for NewMessage search
 - `GET /users/suggestions` — for NewMessage default suggestions
 - Conversations endpoints (`GET /conversations`, `POST /conversations`)
 - Messages endpoints (`GET /messages/:conversationId`)
@@ -107,7 +108,7 @@ src/
 1. ~~Wire `MessageInput` to actually call the "add message" function~~ → done, ChatView owns messages state + addMessage, MessageInput calls it on Enter/click
 2. Clicking a user card in `NewMessage` should call `setSelectedChat` (passed down from HomePage) to open `ChatView`
 3. Back button in `ChatHeader` to reset `selectedChat` to `null` (return to WelcomeView)
-4. Replace `NewMessage`'s console.log placeholders with real axios calls once backend search/suggestions endpoints exist
+4. ~~Replace `NewMessage`'s console.log placeholders with real axios calls once backend search/suggestions endpoints exist~~ → search endpoint exists (`GET /users/search?q=`), wire `NewMessage` to call it; suggestions endpoint still pending
 5. Update `.map()` keys in NewMessage from index-based to `user.id` once real user objects arrive (shape will be `{ id, username }`, not bare numbers)
 6. Replace hardcoded "Test Username" in ChatHeader with real selected chat user (ChatHeader receives no props yet)
 7. Sidebar: replace empty-state with real conversation list once `/conversations` exists

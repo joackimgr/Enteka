@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
-from database import create_table, create_connection, insert_user, get_user_hash
+from database import create_table, create_connection, insert_user, get_user_hash, search_users
 from encryption import hashing, verify
 from auth import create_access_token, verify_token
 
@@ -69,3 +69,11 @@ async def verify_endpoint(token: TokenRequest):
         return {"auth": True, "username": result["sub"]}
     else:
         return {"auth": False, "message": "Invalid or expired token."}
+    
+@app.get("/users/search")
+async def search(query: str = ""):
+    result = search_users(conn, query)
+    if result:
+        return result
+    else:
+        return None
