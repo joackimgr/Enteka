@@ -40,3 +40,13 @@ export const verifyToken = async (token) => {
         return {auth: false, message: 'Network error. Try again.'}
     }
 }
+
+export const search = async (query) => {
+    try {
+        const response = await axios.get(`http://localhost:8000/users/search?query=${query}`)
+        return response.data
+    } catch(error) {
+        console.error("Error searching user", error)
+        return null
+    }
+}

@@ -52,6 +52,18 @@ def get_user_hash(conn, username):
         print("Failed to get user hash.")
         print(e)
         return None
+    
+def search_users(conn, query):
+        try:
+            sql = "SELECT id, username FROM users WHERE username LIKE ?"
+            cursor = conn.cursor()
+            cursor.execute(sql, (f"{query}%",))
+            result = cursor.fetchall()
+            return [{"id": row[0], "username": row[1]} for row in result];
+        except sqlite3.Error as e:
+            print("Failed to search user.")
+            print(e)
+            return None
 
 if __name__ == "__main__":
     database = "Enteka.db"

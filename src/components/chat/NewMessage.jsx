@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
-import { CircleUserRound } from "lucide-react"
+import { CircleUserRound, SearchAlert } from "lucide-react"
+import { search } from "../api/client.js"
 
 export default function NewMessage() {
     const [searchText, setSearchText] = useState('')
@@ -9,23 +10,34 @@ export default function NewMessage() {
     const listToShow = searchText !== "" ? users : suggestions
     const userNames = listToShow.map((i) => {
         return (
-        <div key={i} className="flex items-center justify-between bg-[#272B3D] rounded-[1.2rem] p-2.75 mb-2.75 text-3xl cursor-pointer hover:bg-[#363B52] transition-colors duration-100 ease-in">
+        <div key={i.id} className="flex items-center justify-between bg-[#272B3D] rounded-[1.2rem] p-2.75 mb-2.75 text-3xl cursor-pointer hover:bg-[#363B52] transition-colors duration-100 ease-in">
             <div className="flex items-center gap-2.75 ml-5 font-light">
                 <CircleUserRound size={70} alt="Profile" className="text-white" />
-                <p>{`User${i}`}</p>
+                <p>{`${i.username}`}</p>
             </div>
-            <p>{`Start a chat with User${i}`}</p>
+            <p>{`Start a chat with ${i.username}`}</p>
         </div>
         )
     })
 
     function handleSearchText(e) {
-        setSearchText(e.target.value)
+        let value = e.target.value
+        setSearchText(value)
+        if (value === "") setUsers([])
     }
 
     useEffect(() => {
-        if (searchText !== "") {
-            console.log("Call Backend")
+        if (searchText === "") return
+
+        let cancelled = false
+        const timeoutId = setTimeout(async () => {
+            const response = await search(searchText)
+            if (!cancelled) setUsers(response)
+        }, 300)
+
+        return () => {
+            cancelled = true
+            clearTimeout(timeoutId)
         }
     }, [searchText])
 
@@ -40,9 +52,15 @@ export default function NewMessage() {
                 <label htmlFor="recipientName">To:</label>
                 <input type="text" id="recipientName" onChange={handleSearchText} className="w-full py-2 box-border rounded-[1.2rem] border-0 bg-[#2F3347] text-[30px] text-white focus:outline-none"/>
             </div>
-            <div className="flex flex-col p-2.75 w-full bg-[#2F3347] box-border rounded-[1.2rem]">
-                <p className="text-2xl mt-1.25 mb-3.75">Suggestions:</p>
-                {userNames}
+            <div className="flex flex-col p-2.75 w-full bg-[#2F3347] box-border rounded-[1.2rem] flex-1">
+                <p className="text-2xl mt-1.25 mb-3.75">Search Results:</p>
+                {listToShow.length >= 1 && userNames}
+                {listToShow.length == 0 && 
+                    <div className="flex flex-col items-center justify-center gap-7 flex-1">
+                        <SearchAlert size={80}/>
+                        <p className="text-4xl mb-2">No Users found.</p>
+                    </div>
+                }
             </div>
         </div>
     )
