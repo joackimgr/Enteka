@@ -30,13 +30,13 @@ export default function HomePage({userName}) {
             <section className="grid grid-cols-[1fr_5fr] m-2.75 gap-2.75 flex-1 min-h-0 grid-rows-[minmax(0,1fr)]">
                 <Sidebar chatMode={chatMode} toggleStatus={toggleStatus} />
                     {chatMode && selectedChat && 
-                        <ChatView />
+                        <ChatView selectedChat={selectedChat}/>
                     }
                     {!selectedChat && chatMode && welcome &&
                         <WelcomeView turnOffWelcomeMode={turnOffWelcomeMode} userName={userName} />
                     }
                     {!selectedChat && chatMode && !welcome &&
-                        <NewMessage />
+                        <NewMessage setSelectedChat={setSelectedChat}/>
                     }
                     {!chatMode &&
                         <SettingsPanel activeSettings={activeSettings} />

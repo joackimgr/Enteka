@@ -2,15 +2,14 @@ import { useState, useEffect } from "react"
 import { CircleUserRound, SearchAlert } from "lucide-react"
 import { search } from "../api/client.js"
 
-export default function NewMessage() {
+export default function NewMessage({setSelectedChat}) {
     const [searchText, setSearchText] = useState('')
     const [users, setUsers] = useState([])
-    const [suggestions, setSuggestions] = useState([])
 
-    const listToShow = searchText !== "" ? users : suggestions
+    const listToShow = searchText !== "" ? users : []
     const userNames = listToShow.map((i) => {
         return (
-        <div key={i.id} className="flex items-center justify-between bg-[#272B3D] rounded-[1.2rem] p-2.75 mb-2.75 text-3xl cursor-pointer hover:bg-[#363B52] transition-colors duration-100 ease-in">
+        <div key={i.id} className="flex items-center justify-between bg-[#272B3D] rounded-[1.2rem] p-2.75 mb-2.75 text-3xl cursor-pointer hover:bg-[#363B52] transition-colors duration-100 ease-in" onClick={ () => {setSelectedChat({id: i.id, username: i.username})}}>
             <div className="flex items-center gap-2.75 ml-5 font-light">
                 <CircleUserRound size={70} alt="Profile" className="text-white" />
                 <p>{`${i.username}`}</p>
@@ -32,7 +31,7 @@ export default function NewMessage() {
         let cancelled = false
         const timeoutId = setTimeout(async () => {
             const response = await search(searchText)
-            if (!cancelled) setUsers(response)
+            if (!cancelled) setUsers(response || [])
         }, 300)
 
         return () => {
@@ -41,9 +40,6 @@ export default function NewMessage() {
         }
     }, [searchText])
 
-    useEffect(() => {
-        console.log("Load Suggestions")
-    }, [])
 
     return (
 
