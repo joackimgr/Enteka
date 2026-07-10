@@ -73,7 +73,4 @@ async def verify_endpoint(token: TokenRequest):
 @app.get("/users/search")
 async def search(query: str = ""):
     result = search_users(conn, query)
-    if result:
-        return result
-    else:
-        return None
+    return result

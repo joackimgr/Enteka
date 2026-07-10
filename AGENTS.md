@@ -57,7 +57,7 @@ src/
       Sidebar.jsx         — shows empty-chats state in chat mode, "Account Settings" entry in settings mode
     chat/
       WelcomeView.jsx     — "Hello, {userName}!" + "Start a new chat!" button (calls turnOffWelcomeMode prop)
-      NewMessage.jsx      — "To:" recipient input + suggestions/search list. Has searchText, users, suggestions state. Two useEffects: one on mount (load suggestions, currently console.log placeholder), one on [searchText] (search backend, currently console.log placeholder, guarded by `searchText !== ""`)
+      NewMessage.jsx      — "To:" recipient input + suggestions/search list. Has searchText, users, suggestions state. Two useEffects: one on mount (load suggestions, currently console.log placeholder), one on [searchText] with 300ms debounce (calls `search` from client.js, sets users state, shows "No Users found." card when empty). Resets users on empty input via else branch.
       ChatView.jsx        — composes ChatHeader + MessageList + MessageInput. Owns messages state, passes addMessage function to MessageInput.
       ChatHeader.jsx      — profile pic + username (currently hardcoded "Test Username")
       MessageList.jsx     — renders MessageBubble list from mock messages, scrollable (flex-1 + overflow-y-auto + min-h-0 chain, overflow-hidden on parent)
@@ -66,7 +66,7 @@ src/
     settings/
       SettingsPanel.jsx   — big settings icon by default; account options list (username/password/email/profile picture) when activeSettings prop is true
     api/
-      client.js           — axios calls to backend: loginDataPython(data), signUpDataPython(data), verifyToken(token). Returns { auth, message, token } or network-error fallback. (Moved from SendDataPython.jsx)
+      client.js           — axios calls to backend: loginDataPython(data), signUpDataPython(data), verifyToken(token), search(query). Returns { auth, message, token } or network-error fallback. search returns response.data (list of user dicts) or null on network error. (Moved from SendDataPython.jsx)
   pages/
     AuthPage.jsx          — toggles LoginForm/SignUpForm via showSignUp state + toggleSwitch (prevState => !prevState pattern)
     HomePage.jsx          — owns chatMode, welcome, activeSettings, selectedChat state. Renders NavBar + Sidebar + (ChatView | WelcomeView | NewMessage | SettingsPanel) depending on state combo
@@ -87,7 +87,7 @@ src/
 - `POST /login` — { username, password } → looks up hash, verifies with bcrypt, returns JWT token → { auth, token, username }
 - `POST /verify` — { token } → verifies JWT, returns username → { auth, username }
 - `GET /` — health check
-- `GET /users/search?q=username` — searches users by username prefix via `search_users(conn, query)` in `database.py`, returns `[{ id, username }]` or `null`
+- `GET /users/search?query=username` — searches users by username prefix via `search_users(conn, query)` in `database.py`, returns `[{ id, username }]` or `null`
 - `users` table: id, username (UNIQUE), email (UNIQUE), password (hashed)
 - `database.py` functions: `create_connection`, `create_table`, `insert_user`, `get_user_hash`, `search_users`
 - CORS enabled for localhost:5173 and localhost:8000
@@ -108,8 +108,8 @@ src/
 1. ~~Wire `MessageInput` to actually call the "add message" function~~ → done, ChatView owns messages state + addMessage, MessageInput calls it on Enter/click
 2. Clicking a user card in `NewMessage` should call `setSelectedChat` (passed down from HomePage) to open `ChatView`
 3. Back button in `ChatHeader` to reset `selectedChat` to `null` (return to WelcomeView)
-4. ~~Replace `NewMessage`'s console.log placeholders with real axios calls once backend search/suggestions endpoints exist~~ → search endpoint exists (`GET /users/search?q=`), wire `NewMessage` to call it; suggestions endpoint still pending
-5. Update `.map()` keys in NewMessage from index-based to `user.id` once real user objects arrive (shape will be `{ id, username }`, not bare numbers)
+ 4. ~~Replace `NewMessage`'s console.log placeholders with real axios calls once backend search/suggestions endpoints exist~~ → search endpoint exists (`GET /users/search?q=`), wired to call it with 300ms debounce; shows "No Users found." on empty results; suggestions endpoint still pending
+ 5. ~~Update `.map()` keys in NewMessage from index-based to `user.id` once real user objects arrive~~ → done, uses `key={user.id}` and `{user.username}`
 6. Replace hardcoded "Test Username" in ChatHeader with real selected chat user (ChatHeader receives no props yet)
 7. Sidebar: replace empty-state with real conversation list once `/conversations` exists
 8. WebSocket integration for real-time messages
