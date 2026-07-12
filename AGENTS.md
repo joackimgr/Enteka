@@ -58,7 +58,7 @@ src/
     chat/
       WelcomeView.jsx     — "Hello, {userName}!" + "Start a new chat!" button (calls turnOffWelcomeMode prop)
       NewMessage.jsx      — "To:" recipient input + suggestions/search list. Accepts `setSelectedChat` prop; `handleUserClick` calls `createChat` then `setSelectedChat({ id, username, chat_id })` to open ChatView with a real chat. Has searchText, users state. useEffect on [searchText] with 300ms debounce (calls `search` from client.js, sets users state, shows "No Users found." card when empty). Resets users on empty input via else branch.
-      ChatView.jsx        — composes ChatHeader + MessageList + MessageInput. Accepts `selectedChat` prop (needs `chat_id`), passes `username` to ChatHeader. Owns messages state, passes addMessage function to MessageInput. Currently uses mock messages — needs to be wired to `getMessages`/`sendMessages`.
+      ChatView.jsx        — composes ChatHeader + MessageList + MessageInput. Accepts `selectedChat` prop (needs `chat_id`), passes `username` to ChatHeader. Owns messages + loading state; fetches real messages via `getMessages` on mount/chat change and sends via `sendMessages` on send. Maps backend `content` → `text` and `is_mine` → `isMine` for MessageBubble.
       ChatHeader.jsx      — profile pic + username. Accepts `username` prop to display the selected chat user's name.
       MessageList.jsx     — renders MessageBubble list from mock messages, scrollable (flex-1 + overflow-y-auto + min-h-0 chain, overflow-hidden on parent)
       MessageBubble.jsx   — { text, timestamp, isMine } → right-aligned purple bubble if isMine, left-aligned dark bubble otherwise
@@ -88,10 +88,10 @@ src/
 - `POST /verify` — { token } → verifies JWT, returns username → { auth, username }
 - `GET /` — health check
 - `GET /users/search?query=username` — searches users by username prefix via `search_users(conn, query)` in `database.py`, returns `[{ id, username }]` or `null`
-- `POST /chats` — { user2_id } (user1 from JWT) → normalizes IDs, generates UUID → SHA-256 hash, inserts into `chats`, prevents duplicates via UNIQUE constraint, returns `{ chat_id, passkey_hash }`
+- `POST /chats` — { user2_id } (user1 from JWT) → normalizes IDs, generates UUID → SHA-256 hash, inserts into `chats`, prevents duplicates via UNIQUE constraint, returns `{ chat_id, passkey_hash }`. On UNIQUE violation (duplicate chat), catches `IntegrityError` and returns the existing chat instead of failing.
 - `GET /chats` — JWT auth → returns all chats for the authenticated user (`{ auth, chats: [...] }`)
 - `POST /messages` — { chat_id, content } (sender from JWT) → inserts into `messages`, returns `{ auth, message_id }`
-- `GET /messages/{chat_id}` — JWT auth → returns all messages for a chat ordered by timestamp, each message has `is_mine` (boolean) based on authenticated user
+- `GET /messages/{chat_id}` — JWT auth → returns all messages for a chat ordered by timestamp, each message has `is_mine` (boolean) based on authenticated user. Timestamps formatted as `HH:MM` on the backend.
 - `users` table: id, username (UNIQUE), email (UNIQUE), password (hashed)
 - `chats` table: id, user1_id, user2_id, passkey_hash (SHA-256 of UUID), created_at, UNIQUE(user1_id, user2_id)
 - `messages` table: id, chat_id, sender_id, content, timestamp
@@ -102,6 +102,7 @@ src/
 - ~~Passwords stored in plain text~~ → fixed with bcrypt
 - ~~No UNIQUE constraint on username~~ → fixed
 - ~~Signup checked username+password together~~ → fixed, now checks username only via `get_user_hash`
+- ~~`create_chat` returns `None` on UNIQUE violation (duplicate chat), crashing the frontend~~ → fixed, `IntegrityError` caught, existing chat returned instead
 
 **Not yet implemented (backend):**
 - `GET /users/suggestions` — for NewMessage default suggestions
@@ -117,7 +118,7 @@ src/
 6. ~~Replace hardcoded "Test Username" in ChatHeader with real selected chat user (ChatHeader receives no props yet)~~ → done, ChatHeader accepts `username` prop, ChatView passes `selectedChat.username`
 7. Sidebar: replace empty-state with real conversation list via `GET /chats` (backend ready, frontend not yet wired)
  8. ~~Wire `NewMessage` user card click → `POST /chats` then open `ChatView` with the new chat~~ → done, `handleUserClick` calls `createChat` then passes `chat_id` to `setSelectedChat`
- 9. Wire `ChatView` to fetch messages via `GET /messages/{chat_id}` and send via `POST /messages` (backend ready, frontend still using mock messages)
+ 9. ~~Wire `ChatView` to fetch messages via `GET /messages/{chat_id}` and send via `POST /messages` (backend ready, frontend still using mock messages)~~ → done, ChatView fetches real messages via `getMessages` on mount/chat change and sends via `sendMessages` on send. Loading state shown while fetching.
 10. WebSocket integration for real-time messages
 11. ~~Move `SendDataPython.jsx` to `src/services/api.js`~~ → done, renamed to `src/components/api/client.js`
 12. Finish migrating leftover old-palette colors in Sidebar settings cards (`#40465d` → `#2F3347`, `#3a3f54` → `#363B52`)

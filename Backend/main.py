@@ -160,7 +160,7 @@ async def messages_get(chat_id: int, authorization: str = Header(None)):
         if caller_id is None:
             return {"message": "User doesn't exist", "auth": False}
         chat_list = get_messages_by_chat_id(conn, chat_id)
-        messages = [{"id": msg[0], "sender_id": msg[1], "content": msg[2], "timestamp": msg[3], "is_mine": msg[1] == caller_id} for msg in chat_list]
+        messages = [{"id": msg[0], "sender_id": msg[1], "content": msg[2], "timestamp": msg[3].split()[1][:5], "is_mine": msg[1] == caller_id} for msg in chat_list]
         return {"auth": True, "messages": messages}
     else:
         return {"message": "Error! Cannot create the database connection."}
