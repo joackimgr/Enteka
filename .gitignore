@@ -44,3 +44,5 @@ logs/
 .idea/
 
 Enteka.db
+
+session-*.md
