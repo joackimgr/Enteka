@@ -1,10 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Header
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
-from database import create_table, create_connection, insert_user, get_user_hash, search_users
+from database import *
 from encryption import hashing, verify
 from auth import create_access_token, verify_token
-
 
 conn = create_connection("Enteka.db")
 create_table(conn)
@@ -22,6 +21,13 @@ class UserLogin(BaseModel):
     
 class TokenRequest(BaseModel):
     token: str
+
+class CreateChat(BaseModel):
+    user2_id: int
+
+class CreateMessage(BaseModel):
+    chat_id: int
+    content: str
 
 app.add_middleware(CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://localhost:8000"],
@@ -74,3 +80,83 @@ async def verify_endpoint(token: TokenRequest):
 async def search(query: str = ""):
     result = search_users(conn, query)
     return result
+
+@app.post("/chats")
+async def chats_post(chat_data: CreateChat, authorization: str = Header(None)):
+    if conn is not None:
+        if authorization is None:
+            return {"message": "Not authenticated.", "auth": False}
+        token = authorization.split(" ")[1]
+        payload = verify_token(token)
+        if payload is None:
+            return {"message": "Invalid or expired token.", "auth": False}
+
+        username = payload["sub"]
+        caller_id = get_user_by_username(conn, username)
+        if caller_id is None: 
+            return {"message": "User not found."}
+        
+        result = create_chat(conn, caller_id, chat_data.user2_id)
+        return {"auth": True, "chat": result}
+    else:
+        return {"message": "Error! Cannot create the database connection."}
+    
+
+@app.get("/chats")
+async def chats_get(authorization: str = Header(None)):
+    if conn is not None:
+        if authorization is None:
+            return {"message": "Not authenticated.", "auth": False}
+        token = authorization.split(" ")[1]
+        payload = verify_token(token)
+        if payload is None:
+            return {"message": "Invalid or expired token.", "auth": False}
+        
+        username = payload["sub"]
+        caller_id = get_user_by_username(conn, username)
+        if caller_id is None: 
+            return {"message": "Failed to get chat."}
+        
+        chat_list = get_chats_by_user_id(conn, caller_id)
+        if chat_list is None:
+            return {"message": "Failed to get message."}
+
+        return {"auth": True, "chats": chat_list}
+    else:
+        return {"message": "Error! Cannot create the database connection."}
+
+
+@app.post("/messages")
+async def messages_post(message_data: CreateMessage, authorization: str = Header(None)):
+    if conn is not None:
+        if authorization is None:
+            return {"message": "Not authenticated.", "auth": False}
+        token = authorization.split(" ")[1]
+        payload = verify_token(token)
+        if payload is None:
+            return {"message": "Invalid or expired token.", "auth": False}
+        
+        username = payload["sub"]
+        sender_id = get_user_by_username(conn, username)
+        if sender_id is None: 
+            return {"message": "User not found."}
+        
+        result = insert_message(conn, message_data.chat_id, sender_id, message_data.content)
+        return {"auth": True, "message_id": result}
+    else:
+        return {"message": "Error! Cannot create the database connection."}
+
+@app.get("/messages/{chat_id}")
+async def messages_get(chat_id: int, authorization: str = Header(None)):
+    if conn is not None:
+        if authorization is None:
+            return {"message": "Not authenticated.", "auth": False}
+        token = authorization.split(" ")[1]
+        payload = verify_token(token)
+        if payload is None:
+            return {"message": "Invalid or expired token.", "auth": False}
+        
+        chat_list = get_messages_by_chat_id(conn, chat_id)
+        return {"auth": True, "messages": chat_list}
+    else:
+        return {"message": "Error! Cannot create the database connection."}
