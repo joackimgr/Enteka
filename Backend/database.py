@@ -100,6 +100,13 @@ def create_chat(conn, user1_id, user2_id):
         conn.commit()
         return { "chat_id": cursor.lastrowid, "passkey_hash": hashed }
         
+    except sqlite3.IntegrityError:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, passkey_hash FROM chats WHERE user1_id = ? AND user2_id = ?", (user1_id, user2_id))
+        result = cursor.fetchone()
+        if result:
+            return { "chat_id": result[0], "passke_hash": result[1] }
+        return None
     except sqlite3.Error as e:
         print("Failed to create chat.")
         print(e)

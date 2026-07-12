@@ -50,3 +50,44 @@ export const search = async (query) => {
         return null
     }
 }
+
+export const createChat = async (user2Id) => {
+    try {
+        const token = localStorage.getItem("token")
+        const response = await axios.post("http://localhost:8000/chats",
+            { user2_id: user2Id },
+            { headers: {Authorization: `Bearer ${token}`}}
+        )
+        return response.data
+    } catch (error) {
+        console.error("Error searching user", error)
+        return null
+    }
+}
+
+export const sendMessages = async (chatId, content) => {
+    try {
+        const token = localStorage.getItem("token")
+        const response = await axios.post("http://localhost:8000/messages",
+            { chat_id: chatId, content: content},
+            { headers: {Authorization: `Bearer ${token}`}}
+        )
+        return response.data
+    } catch (error) {
+        console.error("Error sending message", error)
+        return null
+    }
+}
+
+export const getMessages = async (chatId) => {
+    try {
+        const token = localStorage.getItem("token")
+        const response = await axios.get(`http://localhost:8000/messages/${chatId}`, {
+            headers: {Authorization: `Bearer ${token}`}
+        })
+        return response.data
+    } catch (error) {
+        console.error("Error searching chat", error)
+        return null
+    }
+}
