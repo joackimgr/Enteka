@@ -53,7 +53,7 @@ src/
       LoginForm.jsx       — controlled form (username, password), calls loginDataPython, shows backend error, navigates to /home on auth success, saves JWT token to localStorage
       SignUpForm.jsx      — controlled form (username, email, password), calls signUpDataPython, same error/nav pattern, saves JWT token to localStorage
     layout/
-      NavBar.jsx          — logo + ENTEKA text, settings icon (toggles chat/settings mode via prop), profile icon
+      NavBar.jsx          — logo + ENTEKA text, settings icon (toggles chat/settings mode via prop), profile icon with dropdown (Log Out button, click-outside-to-close, removes JWT token and navigates to /)
       Sidebar.jsx         — shows empty-chats state in chat mode, "Account Settings" entry in settings mode
     chat/
       WelcomeView.jsx     — "Hello, {userName}!" + "Start a new chat!" button (calls turnOffWelcomeMode prop)
@@ -123,6 +123,7 @@ src/
 11. ~~Move `SendDataPython.jsx` to `src/services/api.js`~~ → done, renamed to `src/components/api/client.js`
 12. Finish migrating leftover old-palette colors in Sidebar settings cards (`#40465d` → `#2F3347`, `#3a3f54` → `#363B52`)
 13. ~~Login should eventually store/use JWT token once backend issues one~~ → done, JWT fully wired on both backend and frontend
+14. ~~Add logout button via profile dropdown in NavBar~~ → done, profile icon toggles dropdown with Log Out, click-outside-to-close, removes token and navigates to /
 
 ## Git conventions
 
