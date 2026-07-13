@@ -53,7 +53,7 @@ src/
       LoginForm.jsx       — controlled form (username, password), calls loginDataPython, shows backend error, navigates to /home on auth success, saves JWT token to localStorage
       SignUpForm.jsx      — controlled form (username, email, password), calls signUpDataPython, same error/nav pattern, saves JWT token to localStorage
     layout/
-      NavBar.jsx          — logo + ENTEKA text, settings icon (toggles chat/settings mode via prop), profile icon with dropdown (Log Out button, click-outside-to-close, removes JWT token and navigates to /)
+      NavBar.jsx          — logo + ENTEKA text (logo calls `goHome` prop to reset HomePage), settings icon (toggles chat/settings mode via prop), profile icon with dropdown (Log Out button, click-outside-to-close, removes JWT token and navigates to /)
       Sidebar.jsx         — shows empty-chats state in chat mode, "Account Settings" entry in settings mode
     chat/
       WelcomeView.jsx     — "Hello, {userName}!" + "Start a new chat!" button (calls turnOffWelcomeMode prop)
@@ -69,7 +69,7 @@ src/
       client.js           — axios calls to backend: loginDataPython(data), signUpDataPython(data), verifyToken(token), search(query), createChat(user2Id), sendMessages(chatId, content), getMessages(chatId). Returns { auth, message, token } or network-error fallback. search returns response.data (list of user dicts) or null on network error. createChat/sendMessages/getMessages send JWT in Authorization header. (Moved from SendDataPython.jsx)
   pages/
     AuthPage.jsx          — toggles LoginForm/SignUpForm via showSignUp state + toggleSwitch (prevState => !prevState pattern)
-    HomePage.jsx          — owns chatMode, welcome, activeSettings, selectedChat state. Renders NavBar + Sidebar + (ChatView | WelcomeView | NewMessage | SettingsPanel) depending on state combo. `handleBack` function sets `selectedChat(null)` to return to WelcomeView/NewMessage.
+    HomePage.jsx          — owns chatMode, welcome, activeSettings, selectedChat state. Renders NavBar + Sidebar + (ChatView | WelcomeView | NewMessage | SettingsPanel) depending on state combo. `handleBack` function sets `selectedChat(null)` to return to WelcomeView/NewMessage. `goHome` function resets all state (closes chat, shows Welcome, switches to chat mode).
   App.jsx                 — React Router routes: "/" → AuthPage, "/home" → HomePage (guarded by isAuthenticated), "*" → redirect to "/". Owns isAuthenticated + userName + loading state, restores session via /verify on mount.
   main.jsx                 — wraps App in BrowserRouter
 ```
