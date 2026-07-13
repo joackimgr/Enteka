@@ -24,13 +24,17 @@ export default function HomePage({userName}) {
         setActiveSettings(prevState => !prevState)
     }
 
+    function handleBack() {
+        setSelectedChat(null)
+    }
+
     return (
         <div className="h-screen flex flex-col">
             <NavBar toggleChatMode={toggleChatMode} />
             <section className="grid grid-cols-[1fr_5fr] m-2.75 gap-2.75 flex-1 min-h-0 grid-rows-[minmax(0,1fr)]">
                 <Sidebar chatMode={chatMode} toggleStatus={toggleStatus} />
                     {chatMode && selectedChat && 
-                        <ChatView selectedChat={selectedChat}/>
+                        <ChatView selectedChat={selectedChat} handleBack={handleBack}/>
                     }
                     {!selectedChat && chatMode && welcome &&
                         <WelcomeView turnOffWelcomeMode={turnOffWelcomeMode} userName={userName} />

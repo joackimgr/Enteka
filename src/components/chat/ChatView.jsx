@@ -4,7 +4,7 @@ import MessageInput from "./MessageInput";
 import { useState, useEffect } from "react";
 import { getMessages, sendMessages } from "../api/client";
 
-export default function ChatView({selectedChat}) {
+export default function ChatView({selectedChat, handleBack}) {
     const [messages, setMessages] = useState([])
     const [loading, setLoading] = useState(true)
 
@@ -42,7 +42,7 @@ export default function ChatView({selectedChat}) {
 
     return (
         <div className="flex flex-col h-full min-h-0 flex-1 overflow-hidden rounded-4xl bg-[#272B3D]">
-            <ChatHeader username={selectedChat.username}/>
+            <ChatHeader username={selectedChat.username} handleBack={handleBack} />
             {loading ? (
                 <div className="flex items-center justify-center flex-1 text-white">Loading messages...</div>
             ) : (

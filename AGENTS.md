@@ -58,8 +58,8 @@ src/
     chat/
       WelcomeView.jsx     — "Hello, {userName}!" + "Start a new chat!" button (calls turnOffWelcomeMode prop)
       NewMessage.jsx      — "To:" recipient input + suggestions/search list. Accepts `setSelectedChat` prop; `handleUserClick` calls `createChat` then `setSelectedChat({ id, username, chat_id })` to open ChatView with a real chat. Has searchText, users state. useEffect on [searchText] with 300ms debounce (calls `search` from client.js, sets users state, shows "No Users found." card when empty). Resets users on empty input via else branch.
-      ChatView.jsx        — composes ChatHeader + MessageList + MessageInput. Accepts `selectedChat` prop (needs `chat_id`), passes `username` to ChatHeader. Owns messages + loading state; fetches real messages via `getMessages` on mount/chat change and sends via `sendMessages` on send. Maps backend `content` → `text` and `is_mine` → `isMine` for MessageBubble.
-      ChatHeader.jsx      — profile pic + username. Accepts `username` prop to display the selected chat user's name.
+      ChatView.jsx        — composes ChatHeader + MessageList + MessageInput. Accepts `selectedChat` prop (needs `chat_id`), passes `username` and `handleBack` to ChatHeader. Owns messages + loading state; fetches real messages via `getMessages` on mount/chat change and sends via `sendMessages` on send. Maps backend `content` → `text` and `is_mine` → `isMine` for MessageBubble.
+      ChatHeader.jsx      — profile pic + username. Accepts `username` prop to display the selected chat user's name and `handleBack` prop for back arrow.
       MessageList.jsx     — renders MessageBubble list from mock messages, scrollable (flex-1 + overflow-y-auto + min-h-0 chain, overflow-hidden on parent)
       MessageBubble.jsx   — { text, timestamp, isMine } → right-aligned purple bubble if isMine, left-aligned dark bubble otherwise
       MessageInput.jsx    — text input + send icon, styled as pill; wired to add messages to ChatView's state via SendMessage prop on Enter/click
@@ -69,7 +69,7 @@ src/
       client.js           — axios calls to backend: loginDataPython(data), signUpDataPython(data), verifyToken(token), search(query), createChat(user2Id), sendMessages(chatId, content), getMessages(chatId). Returns { auth, message, token } or network-error fallback. search returns response.data (list of user dicts) or null on network error. createChat/sendMessages/getMessages send JWT in Authorization header. (Moved from SendDataPython.jsx)
   pages/
     AuthPage.jsx          — toggles LoginForm/SignUpForm via showSignUp state + toggleSwitch (prevState => !prevState pattern)
-    HomePage.jsx          — owns chatMode, welcome, activeSettings, selectedChat state. Renders NavBar + Sidebar + (ChatView | WelcomeView | NewMessage | SettingsPanel) depending on state combo
+    HomePage.jsx          — owns chatMode, welcome, activeSettings, selectedChat state. Renders NavBar + Sidebar + (ChatView | WelcomeView | NewMessage | SettingsPanel) depending on state combo. `handleBack` function sets `selectedChat(null)` to return to WelcomeView/NewMessage.
   App.jsx                 — React Router routes: "/" → AuthPage, "/home" → HomePage (guarded by isAuthenticated), "*" → redirect to "/". Owns isAuthenticated + userName + loading state, restores session via /verify on mount.
   main.jsx                 — wraps App in BrowserRouter
 ```
@@ -112,7 +112,7 @@ src/
 
 1. ~~Wire `MessageInput` to actually call the "add message" function~~ → done, ChatView owns messages state + addMessage, MessageInput calls it on Enter/click
 2. ~~Clicking a user card in `NewMessage` should call `setSelectedChat` (passed down from HomePage) to open `ChatView`~~ → done, NewMessage accepts `setSelectedChat` prop, user card onClick fires `setSelectedChat({ id, username })`
-3. Back button in `ChatHeader` to reset `selectedChat` to `null` (return to WelcomeView)
+ 3. ~~Back button in `ChatHeader` to reset `selectedChat` to `null` (return to WelcomeView)~~ → done, ChatHeader gets `handleBack` prop, calls `setSelectedChat(null)` in HomePage
  4. ~~Replace `NewMessage`'s console.log placeholders with real axios calls once backend search/suggestions endpoints exist~~ → done, search endpoint wired with 300ms debounce; shows "No Users found." on empty results
  5. ~~Update `.map()` keys in NewMessage from index-based to `user.id` once real user objects arrive~~ → done, uses `key={user.id}` and `{user.username}`
 6. ~~Replace hardcoded "Test Username" in ChatHeader with real selected chat user (ChatHeader receives no props yet)~~ → done, ChatHeader accepts `username` prop, ChatView passes `selectedChat.username`
