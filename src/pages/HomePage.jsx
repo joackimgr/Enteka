@@ -28,9 +28,15 @@ export default function HomePage({userName}) {
         setSelectedChat(null)
     }
 
+    function goHome() {
+        setSelectedChat(null)
+        setWelcome(true)
+        setChatMode(true)
+    }
+
     return (
         <div className="h-screen flex flex-col">
-            <NavBar toggleChatMode={toggleChatMode} />
+            <NavBar toggleChatMode={toggleChatMode} goHome={goHome} />
             <section className="grid grid-cols-[1fr_5fr] m-2.75 gap-2.75 flex-1 min-h-0 grid-rows-[minmax(0,1fr)]">
                 <Sidebar chatMode={chatMode} toggleStatus={toggleStatus} />
                     {chatMode && selectedChat && 
