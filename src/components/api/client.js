@@ -87,7 +87,20 @@ export const getMessages = async (chatId) => {
         })
         return response.data
     } catch (error) {
-        console.error("Error searching chat", error)
+        console.error("Error searching messages", error)
+        return null
+    }
+}
+
+export const getChats = async () => {
+    try {
+        const token = localStorage.getItem("token")
+        const response = await axios.get(`http://localhost:8000/chats`, {
+            headers: {Authorization: `Bearer ${token}`}
+        })
+        return response.data
+    } catch (error) {
+        console.log("Error searching chat", error)
         return null
     }
 }

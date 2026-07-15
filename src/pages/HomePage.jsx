@@ -11,6 +11,7 @@ export default function HomePage({userName}) {
     const [welcome, setWelcome] = useState(true)
     const [activeSettings, setActiveSettings] = useState(false)
     const [selectedChat, setSelectedChat] = useState(null)
+    const [chatRefresh, setChatRefresh] = useState(0)
 
     function toggleChatMode() {
         setChatMode(prevChatMode => !prevChatMode)
@@ -34,19 +35,23 @@ export default function HomePage({userName}) {
         setChatMode(true)
     }
 
+    function bumpChatRefresh() {
+        setChatRefresh(prev => prev + 1)
+    }
+
     return (
         <div className="h-screen flex flex-col">
             <NavBar toggleChatMode={toggleChatMode} goHome={goHome} />
             <section className="grid grid-cols-[1fr_5fr] m-2.75 gap-2.75 flex-1 min-h-0 grid-rows-[minmax(0,1fr)]">
-                <Sidebar chatMode={chatMode} toggleStatus={toggleStatus} />
+                <Sidebar chatMode={chatMode} toggleStatus={toggleStatus} setSelectedChat={setSelectedChat} chatRefresh={chatRefresh} />
                     {chatMode && selectedChat && 
-                        <ChatView selectedChat={selectedChat} handleBack={handleBack}/>
+                        <ChatView selectedChat={selectedChat} handleBack={handleBack} bumpChatRefresh={bumpChatRefresh} />
                     }
                     {!selectedChat && chatMode && welcome &&
                         <WelcomeView turnOffWelcomeMode={turnOffWelcomeMode} userName={userName} />
                     }
                     {!selectedChat && chatMode && !welcome &&
-                        <NewMessage setSelectedChat={setSelectedChat}/>
+                        <NewMessage setSelectedChat={setSelectedChat} bumpChatRefresh={bumpChatRefresh} />
                     }
                     {!chatMode &&
                         <SettingsPanel activeSettings={activeSettings} />

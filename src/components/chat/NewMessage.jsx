@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { CircleUserRound, SearchAlert } from "lucide-react"
 import { search, createChat } from "../api/client.js"
 
-export default function NewMessage({setSelectedChat}) {
+export default function NewMessage({setSelectedChat, bumpChatRefresh}) {
     const [searchText, setSearchText] = useState('')
     const [users, setUsers] = useState([])
 
@@ -11,6 +11,7 @@ export default function NewMessage({setSelectedChat}) {
     async function handleUserClick(user) {
         let chat = await createChat(user.id)
         setSelectedChat({id: user.id, username: user.username, chat_id: chat.chat.chat_id})
+        if (bumpChatRefresh) bumpChatRefresh()
     }
 
     const userNames = listToShow.map((user) => {

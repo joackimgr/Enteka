@@ -4,7 +4,7 @@ import MessageInput from "./MessageInput";
 import { useState, useEffect } from "react";
 import { getMessages, sendMessages } from "../api/client";
 
-export default function ChatView({selectedChat, handleBack}) {
+export default function ChatView({selectedChat, handleBack, bumpChatRefresh}) {
     const [messages, setMessages] = useState([])
     const [loading, setLoading] = useState(true)
 
@@ -20,6 +20,7 @@ export default function ChatView({selectedChat, handleBack}) {
                 isMine: m.is_mine
             })))
         } 
+        if (bumpChatRefresh) bumpChatRefresh()
        }
     }
 
