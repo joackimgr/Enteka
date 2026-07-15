@@ -143,6 +143,20 @@ def get_user_by_username(conn, username):
         print(e)
         return None
     
+def get_user_by_id(conn, id):
+    try:
+        sql = "SELECT username FROM users WHERE id = ?"
+        cursor = conn.cursor()
+        cursor.execute(sql, (id, ))
+        result = cursor.fetchone()
+        if result:
+            return result[0]
+        return None
+    except sqlite3.Error as e:
+        print("Failed to find user.")
+        print(e)
+        return None
+    
 def insert_message(conn, chat_id, sender_id, message):
     try:
         sql = "INSERT INTO messages (chat_id, sender_id, content) VALUES (?, ?, ?)"
@@ -175,6 +189,20 @@ def get_messages_by_chat_id(conn, chat_id):
     
     except sqlite3.Error as e:
         print("Failed to get messages.")
+        print(e)
+        return None
+    
+def get_last_message_by_chat_id(conn, chat_id):
+    try:
+        sql = "SELECT content, timestamp FROM messages WHERE chat_id = ? ORDER BY timestamp DESC LIMIT 1"    
+        cursor = conn.cursor()
+        cursor.execute(sql, (chat_id, ))
+        result = cursor.fetchone()
+        if result:
+            return result
+        return None
+    except sqlite3.Error as e:
+        print("Failed to get last message")
         print(e)
         return None
     

@@ -119,9 +119,26 @@ async def chats_get(authorization: str = Header(None)):
         
         chat_list = get_chats_by_user_id(conn, caller_id)
         if chat_list is None:
-            return {"message": "Failed to get message."}
+            return {"auth": False, "chats": [], "message": "Failed to get message."}
 
-        return {"auth": True, "chats": chat_list}
+        formatted_chats = []
+        for row in chat_list:
+            if row[1] == caller_id:
+                other_user_id = row[2]
+            else:
+                other_user_id = row[1]
+            other_username = get_user_by_id(conn, other_user_id)
+            last_msg = get_last_message_by_chat_id(conn, row[0])
+            if last_msg:
+                formatted_chats.append({
+                    "chat_id": row[0],
+                    "other_username": other_username,
+                    "passkey_hash": row[3],
+                    "created_at": row[4],
+                    "last_message": last_msg[0] if last_msg else None,
+                    "last_timestamp": last_msg[1].split()[1][:5] if last_msg else None
+                })
+        return {"auth": True, "chats": formatted_chats}
     else:
         return {"message": "Error! Cannot create the database connection."}
 

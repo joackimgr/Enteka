@@ -54,11 +54,11 @@ src/
       SignUpForm.jsx      — controlled form (username, email, password), calls signUpDataPython, same error/nav pattern, saves JWT token to localStorage
     layout/
       NavBar.jsx          — logo + ENTEKA text (logo calls `goHome` prop to reset HomePage), settings icon (toggles chat/settings mode via prop), profile icon with dropdown (Log Out button, click-outside-to-close, removes JWT token and navigates to /)
-      Sidebar.jsx         — shows empty-chats state in chat mode, "Account Settings" entry in settings mode
+      Sidebar.jsx         — fetches real chat list via `getChats()` on mount and re-fetches on `chatRefresh` prop change. Renders loading/empty/list states. Chat cards use `bg-[#2F3347]` with `overflow-y-auto` scrolling. "Account Settings" entry in settings mode.
     chat/
       WelcomeView.jsx     — "Hello, {userName}!" + "Start a new chat!" button (calls turnOffWelcomeMode prop)
-      NewMessage.jsx      — "To:" recipient input + suggestions/search list. Accepts `setSelectedChat` prop; `handleUserClick` calls `createChat` then `setSelectedChat({ id, username, chat_id })` to open ChatView with a real chat. Has searchText, users state. useEffect on [searchText] with 300ms debounce (calls `search` from client.js, sets users state, shows "No Users found." card when empty). Resets users on empty input via else branch.
-      ChatView.jsx        — composes ChatHeader + MessageList + MessageInput. Accepts `selectedChat` prop (needs `chat_id`), passes `username` and `handleBack` to ChatHeader. Owns messages + loading state; fetches real messages via `getMessages` on mount/chat change and sends via `sendMessages` on send. Maps backend `content` → `text` and `is_mine` → `isMine` for MessageBubble.
+      NewMessage.jsx      — "To:" recipient input + suggestions/search list. Accepts `setSelectedChat` and `bumpChatRefresh` props; `handleUserClick` calls `createChat` then `setSelectedChat({ id, username, chat_id })` to open ChatView with a real chat, then calls `bumpChatRefresh()` to refresh sidebar. Has searchText, users state. useEffect on [searchText] with 300ms debounce (calls `search` from client.js, sets users state, shows "No Users found." card when empty). Resets users on empty input via else branch.
+      ChatView.jsx        — composes ChatHeader + MessageList + MessageInput. Accepts `selectedChat` prop (needs `chat_id`), passes `username` and `handleBack` to ChatHeader. Owns messages + loading state; fetches real messages via `getMessages` on mount/chat change and sends via `sendMessages` on send. Calls `bumpChatRefresh()` after successful send to update sidebar. Maps backend `content` → `text` and `is_mine` → `isMine` for MessageBubble.
       ChatHeader.jsx      — profile pic + username. Accepts `username` prop to display the selected chat user's name and `handleBack` prop for back arrow.
       MessageList.jsx     — renders MessageBubble list from mock messages, scrollable (flex-1 + overflow-y-auto + min-h-0 chain, overflow-hidden on parent)
       MessageBubble.jsx   — { text, timestamp, isMine } → right-aligned purple bubble if isMine, left-aligned dark bubble otherwise
@@ -69,7 +69,7 @@ src/
       client.js           — axios calls to backend: loginDataPython(data), signUpDataPython(data), verifyToken(token), search(query), createChat(user2Id), sendMessages(chatId, content), getMessages(chatId). Returns { auth, message, token } or network-error fallback. search returns response.data (list of user dicts) or null on network error. createChat/sendMessages/getMessages send JWT in Authorization header. (Moved from SendDataPython.jsx)
   pages/
     AuthPage.jsx          — toggles LoginForm/SignUpForm via showSignUp state + toggleSwitch (prevState => !prevState pattern)
-    HomePage.jsx          — owns chatMode, welcome, activeSettings, selectedChat state. Renders NavBar + Sidebar + (ChatView | WelcomeView | NewMessage | SettingsPanel) depending on state combo. `handleBack` function sets `selectedChat(null)` to return to WelcomeView/NewMessage. `goHome` function resets all state (closes chat, shows Welcome, switches to chat mode).
+      HomePage.jsx          — owns chatMode, welcome, activeSettings, selectedChat, chatRefresh state. Renders NavBar + Sidebar + (ChatView | WelcomeView | NewMessage | SettingsPanel) depending on state combo. `handleBack` function sets `selectedChat(null)` to return to WelcomeView/NewMessage. `goHome` function resets all state (closes chat, shows Welcome, switches to chat mode). `bumpChatRefresh()` increments `chatRefresh` counter; passed to ChatView and NewMessage so they can trigger Sidebar re-fetch.
   App.jsx                 — React Router routes: "/" → AuthPage, "/home" → HomePage (guarded by isAuthenticated), "*" → redirect to "/". Owns isAuthenticated + userName + loading state, restores session via /verify on mount.
   main.jsx                 — wraps App in BrowserRouter
 ```
@@ -79,6 +79,7 @@ src/
 - One-way state (no toggle needed): `welcome` in HomePage only ever goes true → false via `turnOffWelcomeMode`.
 - Auth state (`isAuthenticated`, `userName`) lives in `App.jsx` and is passed down as props — not in context or a global store (no Redux/Zustand currently in use, despite earlier discussion of Zustand as an option).
 - `selectedChat` in HomePage gates whether ChatView shows; must be initialized to `null` (not `{}`, which is truthy and broke conditional rendering early on).
+- `chatRefresh` counter in HomePage: bumping it (`setChatRefresh(prev => prev + 1)`) triggers Sidebar's `useEffect` to re-fetch chat list. `bumpChatRefresh` function is passed to `ChatView` (called after send) and `NewMessage` (called after chat creation) so the sidebar updates in real-time.
 
 ## Backend status
 
@@ -89,13 +90,13 @@ src/
 - `GET /` — health check
 - `GET /users/search?query=username` — searches users by username prefix via `search_users(conn, query)` in `database.py`, returns `[{ id, username }]` or `null`
 - `POST /chats` — { user2_id } (user1 from JWT) → normalizes IDs, generates UUID → SHA-256 hash, inserts into `chats`, prevents duplicates via UNIQUE constraint, returns `{ chat_id, passkey_hash }`. On UNIQUE violation (duplicate chat), catches `IntegrityError` and returns the existing chat instead of failing.
-- `GET /chats` — JWT auth → returns all chats for the authenticated user (`{ auth, chats: [...] }`)
+- `GET /chats` — JWT auth → returns all chats for the authenticated user (`{ auth, chats: [...] }`). Filters out empty chats (no messages). Each chat includes `last_message` and `last_timestamp` (formatted as `HH:MM`).
 - `POST /messages` — { chat_id, content } (sender from JWT) → inserts into `messages`, returns `{ auth, message_id }`
 - `GET /messages/{chat_id}` — JWT auth → returns all messages for a chat ordered by timestamp, each message has `is_mine` (boolean) based on authenticated user. Timestamps formatted as `HH:MM` on the backend.
 - `users` table: id, username (UNIQUE), email (UNIQUE), password (hashed)
 - `chats` table: id, user1_id, user2_id, passkey_hash (SHA-256 of UUID), created_at, UNIQUE(user1_id, user2_id)
 - `messages` table: id, chat_id, sender_id, content, timestamp
-- `database.py` functions: `create_connection`, `create_table`, `insert_user`, `get_user_hash`, `search_users`, `create_chat`, `get_chat_passkey_hash`, `get_user_by_username`, `insert_message`, `get_messages_by_chat_id`, `get_chats_by_user_id`
+- `database.py` functions: `create_connection`, `create_table`, `insert_user`, `get_user_hash`, `search_users`, `create_chat`, `get_chat_passkey_hash`, `get_user_by_username`, `insert_message`, `get_messages_by_chat_id`, `get_chats_by_user_id`, `get_last_message_by_chat_id`
 - CORS enabled for localhost:5173 and localhost:8000
 
 **Known issues fixed so far:**
@@ -103,6 +104,9 @@ src/
 - ~~No UNIQUE constraint on username~~ → fixed
 - ~~Signup checked username+password together~~ → fixed, now checks username only via `get_user_hash`
 - ~~`create_chat` returns `None` on UNIQUE violation (duplicate chat), crashing the frontend~~ → fixed, `IntegrityError` caught, existing chat returned instead
+- ~~Sidebar crashes on `null.map()` when `chats` initial state is `null`~~ → fixed with `(chats || []).map(...)` guard in render and `data && data.chats` guard on setChats
+- ~~Empty chats (no messages) show in sidebar~~ → fixed, backend filters out chats with no messages in `GET /chats`, only appends when `last_msg` is truthy
+- ~~Sidebar doesn't update after creating a new chat or sending a message~~ → fixed, `chatRefresh` counter in HomePage triggers Sidebar re-fetch; `bumpChatRefresh` passed to ChatView and NewMessage
 
 **Not yet implemented (backend):**
 - `GET /users/suggestions` — for NewMessage default suggestions
@@ -116,7 +120,7 @@ src/
  4. ~~Replace `NewMessage`'s console.log placeholders with real axios calls once backend search/suggestions endpoints exist~~ → done, search endpoint wired with 300ms debounce; shows "No Users found." on empty results
  5. ~~Update `.map()` keys in NewMessage from index-based to `user.id` once real user objects arrive~~ → done, uses `key={user.id}` and `{user.username}`
 6. ~~Replace hardcoded "Test Username" in ChatHeader with real selected chat user (ChatHeader receives no props yet)~~ → done, ChatHeader accepts `username` prop, ChatView passes `selectedChat.username`
-7. Sidebar: replace empty-state with real conversation list via `GET /chats` (backend ready, frontend not yet wired)
+7. ~~Sidebar: replace empty-state with real conversation list via `GET /chats`~~ → done, Sidebar fetches on mount and re-fetches on `chatRefresh` change. Cards with `bg-[#2F3347]`, `overflow-y-auto` scrolling, timestamps displayed.
  8. ~~Wire `NewMessage` user card click → `POST /chats` then open `ChatView` with the new chat~~ → done, `handleUserClick` calls `createChat` then passes `chat_id` to `setSelectedChat`
  9. ~~Wire `ChatView` to fetch messages via `GET /messages/{chat_id}` and send via `POST /messages` (backend ready, frontend still using mock messages)~~ → done, ChatView fetches real messages via `getMessages` on mount/chat change and sends via `sendMessages` on send. Loading state shown while fetching.
 10. WebSocket integration for real-time messages
