@@ -44,9 +44,10 @@ class ConnectionManager():
         if not self.active_connections[chat_id]:
             del self.active_connections[chat_id]
 
-    async def broadcast(self, message, chat_id):
+    async def broadcast(self, message, chat_id, exclude=None):
         for connection in self.active_connections.get(chat_id, []):
-            await connection.send_json(message)
+            if connection != exclude:
+                await connection.send_json(message)
 
 manager = ConnectionManager()
 
@@ -238,13 +239,19 @@ async def webSocket_endpoint(websocket: WebSocket, chat_id: int, token: str = Qu
         try: 
             while True: 
                 data = await websocket.receive_json()
-                content = data["content"]
-                message_id = insert_message(conn, chat_id, caller_id, content)
-                await manager.broadcast({"type": "new_message",
-                                        "message_id": message_id,
-                                        "caller_id": caller_id,
-                                        "username": username,
-                                        "content": content,
-                                        "timestamp": datetime.now().strftime("%H:%M")
-                                        }, chat_id)
+                msg_type = data.get("type", "message")
+                if msg_type == "message":
+                    content = data["content"]
+                    message_id = insert_message(conn, chat_id, caller_id, content)
+                    await manager.broadcast({"type": "new_message",
+                                            "message_id": message_id,
+                                            "caller_id": caller_id,
+                                            "username": username,
+                                            "content": content,
+                                            "timestamp": datetime.now().strftime("%H:%M")
+                                            }, chat_id)
+                elif msg_type == "typing":
+                    await manager.broadcast({"type": "typing", "username": username}, chat_id, exclude=websocket)
+                elif msg_type == "stop_typing":
+                    await manager.broadcast({"type": "stop_typing", "username": username}, chat_id, exclude=websocket)
         except WebSocketDisconnect: manager.disconnect(websocket, chat_id)

@@ -34,3 +34,13 @@
   scrollbar-width: thin;
   scrollbar-color: #2F3347 transparent;
 }
+
+@keyframes typing-dot {
+  0%, 20% { opacity: 0.3; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-3px); }
+  80%, 100% { opacity: 0.3; transform: translateY(0); }
+}
+
+.typing-dot {
+  animation: typing-dot 1.4s ease-in-out infinite both;
+}
