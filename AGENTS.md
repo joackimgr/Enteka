@@ -89,14 +89,16 @@ src/
 - `POST /verify` — { token } → verifies JWT, returns username → { auth, username }
 - `GET /` — health check
 - `GET /users/search?query=username` — searches users by username prefix via `search_users(conn, query)` in `database.py`, returns `[{ id, username }]` or `null`
+- `GET /users/suggestions` — JWT auth → returns random user suggestions (excluding caller) for NewMessage default list
 - `POST /chats` — { user2_id } (user1 from JWT) → normalizes IDs, generates UUID → SHA-256 hash, inserts into `chats`, prevents duplicates via UNIQUE constraint, returns `{ chat_id, passkey_hash }`. On UNIQUE violation (duplicate chat), catches `IntegrityError` and returns the existing chat instead of failing.
 - `GET /chats` — JWT auth → returns all chats for the authenticated user (`{ auth, chats: [...] }`). Filters out empty chats (no messages). Each chat includes `last_message` and `last_timestamp` (formatted as `HH:MM`).
+- WebSocket `/ws/{chat_id}` — connects via JWT token as query param, broadcasts new messages to all connected clients in the chat room in real-time via `ConnectionManager`
 - `POST /messages` — { chat_id, content } (sender from JWT) → inserts into `messages`, returns `{ auth, message_id }`
 - `GET /messages/{chat_id}` — JWT auth → returns all messages for a chat ordered by timestamp, each message has `is_mine` (boolean) based on authenticated user. Timestamps formatted as `HH:MM` on the backend.
 - `users` table: id, username (UNIQUE), email (UNIQUE), password (hashed)
 - `chats` table: id, user1_id, user2_id, passkey_hash (SHA-256 of UUID), created_at, UNIQUE(user1_id, user2_id)
 - `messages` table: id, chat_id, sender_id, content, timestamp
-- `database.py` functions: `create_connection`, `create_table`, `insert_user`, `get_user_hash`, `search_users`, `create_chat`, `get_chat_passkey_hash`, `get_user_by_username`, `insert_message`, `get_messages_by_chat_id`, `get_chats_by_user_id`, `get_last_message_by_chat_id`
+- `database.py` functions: `create_connection`, `create_table`, `insert_user`, `get_user_hash`, `search_users`, `create_chat`, `get_chat_passkey_hash`, `get_user_by_username`, `get_user_by_id`, `insert_message`, `get_messages_by_chat_id`, `get_last_message_by_chat_id`, `get_chats_by_user_id`, `get_user_suggestions`
 - CORS enabled for localhost:5173 and localhost:8000
 
 **Known issues fixed so far:**
@@ -109,8 +111,7 @@ src/
 - ~~Sidebar doesn't update after creating a new chat or sending a message~~ → fixed, `chatRefresh` counter in HomePage triggers Sidebar re-fetch; `bumpChatRefresh` passed to ChatView and NewMessage
 
 **Not yet implemented (backend):**
-- `GET /users/suggestions` — for NewMessage default suggestions
-- WebSocket endpoint for real-time messaging
+*(none — all planned backend features are implemented)*
 
 ## Frontend TODO (in rough priority order)
 
@@ -123,7 +124,7 @@ src/
 7. ~~Sidebar: replace empty-state with real conversation list via `GET /chats`~~ → done, Sidebar fetches on mount and re-fetches on `chatRefresh` change. Cards with `bg-[#2F3347]`, `overflow-y-auto` scrolling, timestamps displayed.
  8. ~~Wire `NewMessage` user card click → `POST /chats` then open `ChatView` with the new chat~~ → done, `handleUserClick` calls `createChat` then passes `chat_id` to `setSelectedChat`
  9. ~~Wire `ChatView` to fetch messages via `GET /messages/{chat_id}` and send via `POST /messages` (backend ready, frontend still using mock messages)~~ → done, ChatView fetches real messages via `getMessages` on mount/chat change and sends via `sendMessages` on send. Loading state shown while fetching.
-10. WebSocket integration for real-time messages
+10. ~~WebSocket integration for real-time messages~~ → done, implemented in `main.py`
 11. ~~Move `SendDataPython.jsx` to `src/services/api.js`~~ → done, renamed to `src/components/api/client.js`
 12. Finish migrating leftover old-palette colors in Sidebar settings cards (`#40465d` → `#2F3347`, `#3a3f54` → `#363B52`)
 13. ~~Login should eventually store/use JWT token once backend issues one~~ → done, JWT fully wired on both backend and frontend
