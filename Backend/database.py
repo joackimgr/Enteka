@@ -105,7 +105,7 @@ def create_chat(conn, user1_id, user2_id):
         cursor.execute("SELECT id, passkey_hash FROM chats WHERE user1_id = ? AND user2_id = ?", (user1_id, user2_id))
         result = cursor.fetchone()
         if result:
-            return { "chat_id": result[0], "passke_hash": result[1] }
+            return { "chat_id": result[0], "passkey_hash": result[1] }
         return None
     except sqlite3.Error as e:
         print("Failed to create chat.")
@@ -226,13 +226,30 @@ def get_chats_by_user_id(conn, user_id):
         print(e)
         return None
 
+def get_user_suggestions(conn, caller_id, limit = 10):
+    try:
+        sql = """SELECT id, username 
+        FROM users 
+        WHERE id != ? 
+        ORDER BY RANDOM() 
+        LIMIT ?
+        """
+        cursor =  conn.cursor()
+        cursor.execute(sql, (caller_id, limit))
+        result = cursor.fetchall()
+        return [{"id": row[0], "username": row[1]} for row in result]
+    except sqlite3.Error as e:
+        print("Failed to find users.")
+        print(e)
+        return None
+    
+
 if __name__ == "__main__":
     database = "Enteka.db"
     conn = create_connection(database)
     create_table(conn)
 
     if conn is not None:
-        create_table(conn)
         conn.close()
     else:
         print("Error! Cannot create the database connection.")

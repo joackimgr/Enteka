@@ -45,7 +45,7 @@ export default function HomePage({userName}) {
             <section className="grid grid-cols-[1fr_5fr] m-2.75 gap-2.75 flex-1 min-h-0 grid-rows-[minmax(0,1fr)]">
                 <Sidebar chatMode={chatMode} toggleStatus={toggleStatus} setSelectedChat={setSelectedChat} chatRefresh={chatRefresh} />
                     {chatMode && selectedChat && 
-                        <ChatView selectedChat={selectedChat} handleBack={handleBack} bumpChatRefresh={bumpChatRefresh} />
+                        <ChatView selectedChat={selectedChat} handleBack={handleBack} bumpChatRefresh={bumpChatRefresh} userName={userName} />
                     }
                     {!selectedChat && chatMode && welcome &&
                         <WelcomeView turnOffWelcomeMode={turnOffWelcomeMode} userName={userName} />

@@ -1,28 +1,68 @@
 import ChatHeader from "./ChatHeader";
 import MessageList from "./MessageList";
 import MessageInput from "./MessageInput";
-import { useState, useEffect } from "react";
-import { getMessages, sendMessages } from "../api/client";
+import { useState, useEffect, useRef } from "react";
+import { getMessages } from "../api/client";
 
-export default function ChatView({selectedChat, handleBack, bumpChatRefresh}) {
+export default function ChatView({selectedChat, handleBack, bumpChatRefresh, userName}) {
     const [messages, setMessages] = useState([])
     const [loading, setLoading] = useState(true)
+    const [typingUser, setTypingUser] = useState(null)
+    const wsRef = useRef(null)
+    const typingTimerRef = useRef(null)
+    
 
-    async function addMessage(text) {
-       const result = await sendMessages(selectedChat.chat_id, text)
-       if (result && result.auth) {
-        const data = await getMessages(selectedChat.chat_id)
-        if (data && data.auth) {
-            setMessages(data.messages.map(m => ({
-                id: m.id,
-                text: m.content,
-                timestamp: m.timestamp,
-                isMine: m.is_mine
-            })))
-        } 
-        if (bumpChatRefresh) bumpChatRefresh()
+    function addMessage(text) {
+       if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({ type: "message", content: text }))
+        wsRef.current.send(JSON.stringify({ type: "stop_typing" }))
        }
+       if (typingTimerRef.current) clearTimeout(typingTimerRef.current)
     }
+
+    function handleTyping() {
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({ type: "typing"}))
+        }
+        if (typingTimerRef.current) clearTimeout(typingTimerRef.current)
+        
+            typingTimerRef.current = setTimeout(() => {
+                if (wsRef.current?.readyState === WebSocket.OPEN) {
+                    wsRef.current.send(JSON.stringify({ type: "stop_typing" }))
+                }
+            }, 1000)
+    }
+
+    useEffect(() => {
+        const token = localStorage.getItem('token')
+        const wsUri = `ws://localhost:8000/ws/${selectedChat.chat_id}?token=${token}`
+        const websocket = new WebSocket(wsUri)
+        wsRef.current = websocket
+
+        websocket.onmessage = (event) => {
+            const data = JSON.parse(event.data)
+            if (data.type === "new_message") {
+                const isMine = data.username === userName
+                setMessages(prev => [...prev, {
+                    id: data.message_id,
+                    text: data.content,
+                    timestamp: data.timestamp,
+                    isMine: isMine
+                }])
+                if (bumpChatRefresh) bumpChatRefresh()
+            } else if (data.type === "typing") {
+                setTypingUser(data.username)
+            } else if (data.type === "stop_typing") {
+                setTypingUser(prev => prev === data.username ? null : prev)
+            }
+        }
+
+        return () => {
+            websocket.close()
+            if (typingTimerRef.current) clearTimeout(typingTimerRef.current)
+        }
+
+    }, [selectedChat.chat_id])
 
     useEffect(() => {
         async function fetchMessages() {
@@ -47,9 +87,9 @@ export default function ChatView({selectedChat, handleBack, bumpChatRefresh}) {
             {loading ? (
                 <div className="flex items-center justify-center flex-1 text-white">Loading messages...</div>
             ) : (
-                <MessageList messages={messages}/>
+                <MessageList messages={messages} typingUser={typingUser} />
             )}
-            <MessageInput SendMessage={addMessage}/>
+            <MessageInput SendMessage={addMessage} onTyping={handleTyping} />
         </div>
     )
 }
