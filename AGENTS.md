@@ -100,6 +100,7 @@ src/
 - `messages` table: id, chat_id, sender_id, content, timestamp
 - `database.py` functions: `create_connection`, `create_table`, `insert_user`, `get_user_hash`, `search_users`, `create_chat`, `get_chat_passkey_hash`, `get_user_by_username`, `get_user_by_id`, `insert_message`, `get_messages_by_chat_id`, `get_last_message_by_chat_id`, `get_chats_by_user_id`, `get_user_suggestions`
 - CORS enabled for localhost:5173 and localhost:8000
+- `authenticate_caller(conn, authorization)` helper extracted in `main.py` — reduces 15-line repeated auth block across 5 endpoints to 3 lines each. Returns `(caller_id, error_or_none)` tuple on all paths.
 
 **Known issues fixed so far:**
 - ~~Passwords stored in plain text~~ → fixed with bcrypt
@@ -109,6 +110,11 @@ src/
 - ~~Sidebar crashes on `null.map()` when `chats` initial state is `null`~~ → fixed with `(chats || []).map(...)` guard in render and `data && data.chats` guard on setChats
 - ~~Empty chats (no messages) show in sidebar~~ → fixed, backend filters out chats with no messages in `GET /chats`, only appends when `last_msg` is truthy
 - ~~Sidebar doesn't update after creating a new chat or sending a message~~ → fixed, `chatRefresh` counter in HomePage triggers Sidebar re-fetch; `bumpChatRefresh` passed to ChatView and NewMessage
+- ~~`authenticate_caller` helper extracted (auth logic centralized, consistent tuple return on all paths)~~ → fixed in `fix/backend-minor-issues`, merged to main
+- ~~`GET /messages/{chat_id}` crashes on empty chat (no null guard)~~ → fixed, null check returns `{ auth: True, messages: [] }`
+- ~~`email-validator` missing from requirements~~ → fixed, added to `requirements.txt`
+- ~~`encryption.py:verify` redundant `if x else` pattern~~ → simplified to direct return
+- ~~`database.py:create_table` misleading print message~~ → updated to reflect all 3 tables
 
 **Not yet implemented (backend):**
 *(none — all planned backend features are implemented)*
@@ -132,10 +138,6 @@ src/
 15. ~~Typing indicator~~ → done, animated dots with custom `@keyframes typing-dot` in `index.css`, 1.5s idle timer, `exclude=websocket` on backend
 16. ~~Auto-scroll on new messages~~ → done, `MessageList` uses `useRef` + `scrollIntoView`
 17. ~~Timestamp visibility on own messages~~ → done, `text-white/65` on purple bubbles vs `text-gray-400` on dark
-11. ~~Move `SendDataPython.jsx` to `src/services/api.js`~~ → done, renamed to `src/components/api/client.js`
-12. Finish migrating leftover old-palette colors in Sidebar settings cards (`#40465d` → `#2F3347`, `#3a3f54` → `#363B52`)
-13. ~~Login should eventually store/use JWT token once backend issues one~~ → done, JWT fully wired on both backend and frontend
-14. ~~Add logout button via profile dropdown in NavBar~~ → done, profile icon toggles dropdown with Log Out, click-outside-to-close, removes token and navigates to /
 
 ## Git conventions
 
