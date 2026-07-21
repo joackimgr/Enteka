@@ -7,7 +7,4 @@ def hashing(password):
     return hashing.decode('utf-8')
 
 def verify(password, stored_hash):
-    if bcrypt.checkpw(password.encode('utf-8'), stored_hash.encode('utf-8')):
-        return True
-    else:
-        return False
+    return bcrypt.checkpw(password.encode('utf-8'), stored_hash.encode('utf-8'))

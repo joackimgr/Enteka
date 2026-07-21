@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Header, WebSocket, WebSocketDisconnect, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from fastapi.middleware.cors import CORSMiddleware
 from database import *
 from encryption import hashing, verify
@@ -13,7 +13,7 @@ app = FastAPI()
 
 class UserSignUp(BaseModel):
     username: str
-    email: str
+    email: EmailStr
     password: str
     
 class UserLogin(BaseModel):
@@ -56,6 +56,19 @@ app.add_middleware(CORSMiddleware,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
+
+def authenticate_caller(conn, authorization):
+    if authorization is None:
+        return None, {"message": "Not authenticated.", "auth": False}
+    token = authorization.split(" ")[1]
+    payload = verify_token(token)
+    if payload is None:
+        return None, {"message": "Invalid or expired token.", "auth": False}
+    username = payload["sub"]
+    caller_id = get_user_by_username(conn, username)
+    if caller_id is None: 
+        return None, {"message": "User not found."}
+    return caller_id, None
 
 @app.get("/")
 async def read_root():
@@ -106,18 +119,9 @@ async def search(query: str = ""):
 @app.post("/chats")
 async def chats_post(chat_data: CreateChat, authorization: str = Header(None)):
     if conn is not None:
-        if authorization is None:
-            return {"message": "Not authenticated.", "auth": False}
-        token = authorization.split(" ")[1]
-        payload = verify_token(token)
-        if payload is None:
-            return {"message": "Invalid or expired token.", "auth": False}
-
-        username = payload["sub"]
-        caller_id = get_user_by_username(conn, username)
-        if caller_id is None: 
-            return {"message": "User not found."}
-        
+        caller_id, error = authenticate_caller(conn, authorization)
+        if error:
+            return error
         result = create_chat(conn, caller_id, chat_data.user2_id)
         return {"auth": True, "chat": result}
     else:
@@ -127,18 +131,9 @@ async def chats_post(chat_data: CreateChat, authorization: str = Header(None)):
 @app.get("/chats")
 async def chats_get(authorization: str = Header(None)):
     if conn is not None:
-        if authorization is None:
-            return {"message": "Not authenticated.", "auth": False}
-        token = authorization.split(" ")[1]
-        payload = verify_token(token)
-        if payload is None:
-            return {"message": "Invalid or expired token.", "auth": False}
-        
-        username = payload["sub"]
-        caller_id = get_user_by_username(conn, username)
-        if caller_id is None: 
-            return {"message": "Failed to get chat."}
-        
+        caller_id, error = authenticate_caller(conn, authorization)
+        if error:
+            return error
         chat_list = get_chats_by_user_id(conn, caller_id)
         if chat_list is None:
             return {"auth": False, "chats": [], "message": "Failed to get chats."}
@@ -168,18 +163,9 @@ async def chats_get(authorization: str = Header(None)):
 @app.post("/messages")
 async def messages_post(message_data: CreateMessage, authorization: str = Header(None)):
     if conn is not None:
-        if authorization is None:
-            return {"message": "Not authenticated.", "auth": False}
-        token = authorization.split(" ")[1]
-        payload = verify_token(token)
-        if payload is None:
-            return {"message": "Invalid or expired token.", "auth": False}
-        
-        username = payload["sub"]
-        sender_id = get_user_by_username(conn, username)
-        if sender_id is None: 
-            return {"message": "User not found."}
-        
+        sender_id, error = authenticate_caller(conn, authorization)
+        if error:
+            return error
         result = insert_message(conn, message_data.chat_id, sender_id, message_data.content)
         return {"auth": True, "message_id": result}
     else:
@@ -188,17 +174,12 @@ async def messages_post(message_data: CreateMessage, authorization: str = Header
 @app.get("/messages/{chat_id}")
 async def messages_get(chat_id: int, authorization: str = Header(None)):
     if conn is not None:
-        if authorization is None:
-            return {"message": "Not authenticated.", "auth": False}
-        token = authorization.split(" ")[1]
-        payload = verify_token(token)
-        if payload is None:
-            return {"message": "Invalid or expired token.", "auth": False}
-        username = payload["sub"]
-        caller_id = get_user_by_username(conn, username)
-        if caller_id is None:
-            return {"message": "User doesn't exist", "auth": False}
+        caller_id, error = authenticate_caller(conn, authorization)
+        if error:
+            return error
         chat_list = get_messages_by_chat_id(conn, chat_id)
+        if chat_list is None:
+            return {"auth": True, "messages": []}
         messages = [{"id": msg[0], "sender_id": msg[1], "content": msg[2], "timestamp": msg[3].split()[1][:5], "is_mine": msg[1] == caller_id} for msg in chat_list]
         return {"auth": True, "messages": messages}
     else:
@@ -207,16 +188,9 @@ async def messages_get(chat_id: int, authorization: str = Header(None)):
 @app.get("/users/suggestions")
 async def user_suggestions(authorization: str = Header(None)):
     if conn is not None:
-        if authorization is None:
-            return {"message": "Not authenticated.", "auth": False}
-        token = authorization.split(" ")[1]
-        payload = verify_token(token)
-        if payload is None:
-            return {"message": "Invalid or expired token.", "auth": False}
-        username = payload["sub"]
-        caller_id = get_user_by_username(conn, username)
-        if caller_id is None:
-            return {"message": "User doesn't exist", "auth": False}
+        caller_id, error = authenticate_caller(conn, authorization)
+        if error:
+            return error
         user_suggest =  get_user_suggestions(conn, caller_id)
         return {"auth": True, "suggestions": user_suggest}
     else: 

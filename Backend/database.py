@@ -47,7 +47,7 @@ def create_table(conn):
         cursor.executescript(sql_create_tables)
         print("Users table created successfully.")
     except sqlite3.Error as e:
-        print("Failed to create users table.")
+        print("Failed to create users, chats and messages table.")
         print(e)
     
 def insert_user(conn, username, email, password):
