@@ -19,7 +19,7 @@ This file exists to give any AI coding agent the context needed to continue help
 - FastAPI (Python)
 - SQLite (`Enteka.db`) via `sqlite3` — may move to PostgreSQL/Turso later for production
 - `bcrypt` for password hashing (via `encryption.py`)
-- CORS configured for `http://localhost:5173` and `http://localhost:8000`
+- CORS configured for `http://localhost:5173`, `http://localhost:8000`, and `http://192.168.1.112:5173` (for phone testing)
 - JWT auth — **implemented** (via `auth.py`, `PyJWT`, HS256)
 
 **Deployment plan (not started yet)**
@@ -58,7 +58,7 @@ src/
     chat/
       WelcomeView.jsx     — "Hello, {userName}!" + "Start a new chat!" button (calls turnOffWelcomeMode prop)
       NewMessage.jsx      — "To:" recipient input + suggestions/search list. Accepts `setSelectedChat` and `bumpChatRefresh` props; `handleUserClick` calls `createChat` then `setSelectedChat({ id, username, chat_id })` to open ChatView with a real chat, then calls `bumpChatRefresh()` to refresh sidebar. Has searchText, users state. useEffect on [searchText] with 300ms debounce (calls `search` from client.js, sets users state, shows "No Users found." card when empty). Resets users on empty input via else branch.
-      ChatView.jsx        — composes ChatHeader + MessageList + MessageInput. Accepts `selectedChat`, `handleBack`, `bumpChatRefresh`, and `userName` props. Owns messages + loading state; fetches real messages via `getMessages` on mount/chat change. Sends/receives messages via WebSocket (no POST). Has `handleTyping` function with 1.5s idle timer, `typingUser` state, and `typingTimerRef`. `onmessage` handles `new_message`, `typing`, and `stop_typing` event types. Calls `bumpChatRefresh()` on new messages to update sidebar. Maps backend `content` → `text`, compares `data.username === userName` for `isMine`.
+      ChatView.jsx        — composes ChatHeader + MessageList + MessageInput. Accepts `selectedChat`, `handleBack`, `bumpChatRefresh`, and `userName` props. Owns messages + loading state; fetches real messages via `getMessages` on mount/chat change. Sends/receives messages via WebSocket (no POST). WebSocket URL built from `WS_BASE` (imported from client.js) + chat_id. Has `handleTyping` function with 1.5s idle timer, `typingUser` state, and `typingTimerRef`. `onmessage` handles `new_message`, `typing`, and `stop_typing` event types. Calls `bumpChatRefresh()` on new messages to update sidebar. Maps backend `content` → `text`, compares `data.username === userName` for `isMine`.
       ChatHeader.jsx      — profile pic + username. Accepts `username` prop to display the selected chat user's name and `handleBack` prop for back arrow.
       MessageList.jsx     — renders MessageBubble list, scrollable (flex-1 + overflow-y-auto + min-h-0), auto-scrolls to bottom on new messages via `useRef` + `scrollIntoView`. Accepts `typingUser` prop to render animated typing dots.
       MessageBubble.jsx   — { text, timestamp, isMine } → right-aligned purple bubble with `text-white/65` timestamp if isMine, left-aligned dark bubble with `text-gray-400` timestamp otherwise
@@ -66,7 +66,7 @@ src/
     settings/
       SettingsPanel.jsx   — big settings icon by default; account options list (username/password/email/profile picture) when activeSettings prop is true
     api/
-      client.js           — axios calls to backend: loginDataPython(data), signUpDataPython(data), verifyToken(token), search(query), createChat(user2Id), sendMessages(chatId, content), getMessages(chatId). Returns { auth, message, token } or network-error fallback. search returns response.data (list of user dicts) or null on network error. createChat/sendMessages/getMessages send JWT in Authorization header. (Moved from SendDataPython.jsx)
+      client.js           — axios calls to backend: loginDataPython(data), signUpDataPython(data), verifyToken(token), search(query), createChat(user2Id), sendMessages(chatId, content), getMessages(chatId). Returns { auth, message, token } or network-error fallback. search returns response.data (list of user dicts) or null on network error. createChat/sendMessages/getMessages send JWT in Authorization header. Exports `API_BASE` and `WS_BASE` constants at the top — change `localhost` in `BASE_URL` to laptop IP here for phone testing. (Moved from SendDataPython.jsx)
   pages/
     AuthPage.jsx          — toggles LoginForm/SignUpForm via showSignUp state + toggleSwitch (prevState => !prevState pattern)
       HomePage.jsx          — owns chatMode, welcome, activeSettings, selectedChat, chatRefresh state. Renders NavBar + Sidebar + (ChatView | WelcomeView | NewMessage | SettingsPanel) depending on state combo. `handleBack` function sets `selectedChat(null)` to return to WelcomeView/NewMessage. `goHome` function resets all state (closes chat, shows Welcome, switches to chat mode). `bumpChatRefresh()` increments `chatRefresh` counter; passed to ChatView and NewMessage so they can trigger Sidebar re-fetch. Passes `userName` to ChatView for isMine detection.
@@ -99,7 +99,7 @@ src/
 - `chats` table: id, user1_id, user2_id, passkey_hash (SHA-256 of UUID), created_at, UNIQUE(user1_id, user2_id)
 - `messages` table: id, chat_id, sender_id, content, timestamp
 - `database.py` functions: `create_connection`, `create_table`, `insert_user`, `get_user_hash`, `search_users`, `create_chat`, `get_chat_passkey_hash`, `get_user_by_username`, `get_user_by_id`, `insert_message`, `get_messages_by_chat_id`, `get_last_message_by_chat_id`, `get_chats_by_user_id`, `get_user_suggestions`
-- CORS enabled for localhost:5173 and localhost:8000
+- CORS enabled for localhost:5173, localhost:8000, and 192.168.1.112:5173 (for phone testing)
 - `authenticate_caller(conn, authorization)` helper extracted in `main.py` — reduces 15-line repeated auth block across 5 endpoints to 3 lines each. Returns `(caller_id, error_or_none)` tuple on all paths.
 
 **Known issues fixed so far:**
