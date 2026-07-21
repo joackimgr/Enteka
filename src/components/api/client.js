@@ -1,8 +1,12 @@
 import axios from 'axios';
 
+const BASE_URL = 'http://192.168.1.112:8000';
+export const API_BASE = BASE_URL;
+export const WS_BASE = 'ws://192.168.1.112:8000';
+
 export const loginDataPython = async (data) => {
     try {
-        const response = await axios.post('http://localhost:8000/login', {
+        const response = await axios.post(`${BASE_URL}/login`, {
             username: data.username,
             password: data.password
         });
@@ -16,7 +20,7 @@ export const loginDataPython = async (data) => {
 
 export const signUpDataPython = async (data) => {
     try {
-        const response = await axios.post('http://localhost:8000/signup', {
+        const response = await axios.post(`${BASE_URL}/signup`, {
             username: data.username,
             email: data.email,
             password: data.password
@@ -31,7 +35,7 @@ export const signUpDataPython = async (data) => {
 
 export const verifyToken = async (token) => {
     try {
-        const response = await axios.post('http://localhost:8000/verify', {
+        const response = await axios.post(`${BASE_URL}/verify`, {
             token: token
         })
         return response.data
@@ -43,7 +47,7 @@ export const verifyToken = async (token) => {
 
 export const search = async (query) => {
     try {
-        const response = await axios.get(`http://localhost:8000/users/search?query=${query}`)
+        const response = await axios.get(`${BASE_URL}/users/search?query=${query}`)
         return response.data
     } catch(error) {
         console.error("Error searching user", error)
@@ -54,7 +58,7 @@ export const search = async (query) => {
 export const createChat = async (user2Id) => {
     try {
         const token = localStorage.getItem("token")
-        const response = await axios.post("http://localhost:8000/chats",
+        const response = await axios.post(`${BASE_URL}/chats`,
             { user2_id: user2Id },
             { headers: {Authorization: `Bearer ${token}`}}
         )
@@ -68,7 +72,7 @@ export const createChat = async (user2Id) => {
 export const sendMessages = async (chatId, content) => {
     try {
         const token = localStorage.getItem("token")
-        const response = await axios.post("http://localhost:8000/messages",
+        const response = await axios.post(`${BASE_URL}/messages`,
             { chat_id: chatId, content: content},
             { headers: {Authorization: `Bearer ${token}`}}
         )
@@ -82,7 +86,7 @@ export const sendMessages = async (chatId, content) => {
 export const getMessages = async (chatId) => {
     try {
         const token = localStorage.getItem("token")
-        const response = await axios.get(`http://localhost:8000/messages/${chatId}`, {
+        const response = await axios.get(`${BASE_URL}/messages/${chatId}`, {
             headers: {Authorization: `Bearer ${token}`}
         })
         return response.data
@@ -95,7 +99,7 @@ export const getMessages = async (chatId) => {
 export const getChats = async () => {
     try {
         const token = localStorage.getItem("token")
-        const response = await axios.get(`http://localhost:8000/chats`, {
+        const response = await axios.get(`${BASE_URL}/chats`, {
             headers: {Authorization: `Bearer ${token}`}
         })
         return response.data

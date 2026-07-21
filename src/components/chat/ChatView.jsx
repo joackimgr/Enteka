@@ -2,7 +2,7 @@ import ChatHeader from "./ChatHeader";
 import MessageList from "./MessageList";
 import MessageInput from "./MessageInput";
 import { useState, useEffect, useRef } from "react";
-import { getMessages } from "../api/client";
+import { getMessages, WS_BASE } from "../api/client";
 
 export default function ChatView({selectedChat, handleBack, bumpChatRefresh, userName}) {
     const [messages, setMessages] = useState([])
@@ -35,7 +35,7 @@ export default function ChatView({selectedChat, handleBack, bumpChatRefresh, use
 
     useEffect(() => {
         const token = localStorage.getItem('token')
-        const wsUri = `ws://localhost:8000/ws/${selectedChat.chat_id}?token=${token}`
+        const wsUri = `${WS_BASE}/ws/${selectedChat.chat_id}?token=${token}`
         const websocket = new WebSocket(wsUri)
         wsRef.current = websocket
 
