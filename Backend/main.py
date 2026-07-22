@@ -5,6 +5,7 @@ from database import *
 from encryption import hashing, verify
 from auth import create_access_token, verify_token
 from datetime import datetime
+import os
 
 conn = create_connection("Enteka.db")
 create_table(conn)
@@ -51,8 +52,10 @@ class ConnectionManager():
 
 manager = ConnectionManager()
 
+p_ip = os.getenv("P_IP", "localhost")
+
 app.add_middleware(CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:8000", "http://192.168.1.112:5173"],
+    allow_origins=["http://localhost:5173", "http://localhost:8000", f"http://{p_ip}:5173"],
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )

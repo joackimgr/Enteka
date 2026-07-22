@@ -1,8 +1,9 @@
 import axios from 'axios';
 
-const BASE_URL = 'http://192.168.1.112:8000';
+const personalIp = import.meta.env.VITE_PERSONAL_IP || 'localhost';
+const BASE_URL = `http://${personalIp}:8000`;
 export const API_BASE = BASE_URL;
-export const WS_BASE = 'ws://192.168.1.112:8000';
+export const WS_BASE = `ws://${personalIp}:8000`;
 
 export const loginDataPython = async (data) => {
     try {
