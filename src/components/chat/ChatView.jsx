@@ -13,6 +13,7 @@ export default function ChatView({selectedChat, handleBack, bumpChatRefresh, use
     const isIntentionalCloseRef = useRef(false)
     const reconnectAttemptRef = useRef(0)
     const reconnectTimerRef = useRef(null)
+    const genRef = useRef(0)
     
 
     function addMessage(text) {
@@ -37,6 +38,11 @@ export default function ChatView({selectedChat, handleBack, bumpChatRefresh, use
     }
 
     function connect() {
+        const myGen = ++genRef.current
+        if (wsRef.current) {
+            wsRef.current.onclose = null
+            wsRef.current.close()
+        }
         const token = localStorage.getItem('token')
         const wsUri = `${WS_BASE}/ws/${selectedChat.chat_id}?token=${token}`
         const websocket = new WebSocket(wsUri)
@@ -47,6 +53,7 @@ export default function ChatView({selectedChat, handleBack, bumpChatRefresh, use
         }
 
         websocket.onmessage = (event) => {
+            if (myGen !== genRef.current) return
             const data = JSON.parse(event.data)
             if (data.type === "new_message") {
                 const isMine = data.username === userName
@@ -65,10 +72,12 @@ export default function ChatView({selectedChat, handleBack, bumpChatRefresh, use
         }
 
         websocket.onerror = (event) => {
+            if (myGen !== genRef.current) return
             console.error(`${event}`)
         }
 
         websocket.onclose = () => {
+            if (myGen !== genRef.current) return
             if (!isIntentionalCloseRef.current) {
                 const max_attempts = 5
                 if (reconnectAttemptRef.current < max_attempts) {
