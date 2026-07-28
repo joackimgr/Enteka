@@ -1,6 +1,7 @@
 import sqlite3
 import uuid
 import hashlib
+from encryption import encrypt, decrypt
 
 def create_connection(db_file):
     conn = None
@@ -38,16 +39,28 @@ def create_table(conn):
         chat_id INTEGER NOT NULL,
         sender_id INTEGER NOT NULL,
         content TEXT NOT NULL,
+        image TEXT,
         timestamp TEXT DEFAULT (datetime('now')),
         FOREIGN KEY (chat_id) REFERENCES chats(id),
         FOREIGN KEY (sender_id) REFERENCES users(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS friends (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        from_id INTEGER NOT NULL,
+        to_id INTEGER NOT NULL,
+        status TEXT DEFAULT 'pending',
+        created_at TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (from_id) REFERENCES users(id),
+        FOREIGN KEY (to_id) REFERENCES users(id),
+        UNIQUE(from_id, to_id)
         );
         """
         cursor = conn.cursor()
         cursor.executescript(sql_create_tables)
         print("Users table created successfully.")
     except sqlite3.Error as e:
-        print("Failed to create users, chats and messages table.")
+        print("Failed to create tables.")
         print(e)
     
 def insert_user(conn, username, email, password):
@@ -157,11 +170,11 @@ def get_user_by_id(conn, id):
         print(e)
         return None
     
-def insert_message(conn, chat_id, sender_id, message):
+def insert_message(conn, chat_id, sender_id, message, image=None):
     try:
-        sql = "INSERT INTO messages (chat_id, sender_id, content) VALUES (?, ?, ?)"
+        sql = "INSERT INTO messages (chat_id, sender_id, content, image) VALUES (?, ?, ?, ?)"
         cursor = conn.cursor()
-        cursor.execute(sql, (chat_id, sender_id, message))
+        cursor.execute(sql, (chat_id, sender_id, encrypt(message), image))
         result = cursor.lastrowid
         conn.commit()
         if result:
@@ -175,7 +188,7 @@ def insert_message(conn, chat_id, sender_id, message):
     
 def get_messages_by_chat_id(conn, chat_id):
     try:
-        sql = """SELECT id, sender_id, content, timestamp
+        sql = """SELECT id, sender_id, content, image, timestamp
         FROM messages 
         WHERE chat_id = ? 
         ORDER BY timestamp ASC
@@ -184,7 +197,7 @@ def get_messages_by_chat_id(conn, chat_id):
         cursor.execute(sql, (chat_id, ))
         result = cursor.fetchall()
         if result:
-            return result
+            return [(row[0], row[1], decrypt(row[2]), row[3], row[4]) for row in result]
         return None
     
     except sqlite3.Error as e:
@@ -194,12 +207,12 @@ def get_messages_by_chat_id(conn, chat_id):
     
 def get_last_message_by_chat_id(conn, chat_id):
     try:
-        sql = "SELECT content, timestamp FROM messages WHERE chat_id = ? ORDER BY timestamp DESC LIMIT 1"    
+        sql = "SELECT content, image, timestamp FROM messages WHERE chat_id = ? ORDER BY timestamp DESC LIMIT 1"    
         cursor = conn.cursor()
         cursor.execute(sql, (chat_id, ))
         result = cursor.fetchone()
         if result:
-            return result
+            return (decrypt(result[0]), result[1], result[2])
         return None
     except sqlite3.Error as e:
         print("Failed to get last message")
@@ -243,6 +256,93 @@ def get_user_suggestions(conn, caller_id, limit = 10):
         print(e)
         return None
     
+def send_friend_request(conn, from_id, to_id):
+    try:
+        sql = "INSERT INTO friends (from_id, to_id, status) VALUES (?, ?, 'pending')"
+        cursor = conn.cursor()
+        cursor.execute(sql, (from_id, to_id))
+        conn.commit()
+        return {"id": cursor.lastrowid}
+    except sqlite3.IntegrityError:
+        return None
+    except sqlite3.Error as e:
+        print(e)
+        return None
+
+def accept_friend_request(conn, request_id):
+    try:
+        sql = "UPDATE friends SET status = 'accepted' WHERE id = ? AND status = 'pending'"
+        cursor = conn.cursor()
+        cursor.execute(sql, (request_id,))
+        conn.commit()
+        return cursor.rowcount > 0
+    except sqlite3.Error as e:
+        print(e)
+        return None
+
+def reject_friend_request(conn, request_id):
+    try:
+        sql = "UPDATE friends SET status = 'rejected' WHERE id = ? AND status = 'pending'"
+        cursor = conn.cursor()
+        cursor.execute(sql, (request_id,))
+        conn.commit()
+        return cursor.rowcount > 0
+    except sqlite3.Error as e:
+        print(e)
+        return None
+
+def get_pending_requests(conn, user_id):
+    try:
+        sql = """SELECT f.id, f.from_id, u.username, f.created_at
+        FROM friends f
+        JOIN users u ON f.from_id = u.id
+        WHERE f.to_id = ? AND f.status = 'pending'
+        ORDER BY f.created_at DESC
+        """
+        cursor = conn.cursor()
+        cursor.execute(sql, (user_id,))
+        result = cursor.fetchall()
+        if result:
+            return [{"id": row[0], "from_id": row[1], "username": row[2], "created_at": row[3]} for row in result]
+        return []
+    except sqlite3.Error as e:
+        print(e)
+        return None
+
+def get_friends(conn, user_id):
+    try:
+        sql = """SELECT f.id,
+        CASE WHEN f.from_id = ? THEN f.to_id ELSE f.from_id END AS friend_id,
+        CASE WHEN f.from_id = ? THEN u2.username ELSE u1.username END AS username
+        FROM friends f
+        JOIN users u1 ON f.from_id = u1.id
+        JOIN users u2 ON f.to_id = u2.id
+        WHERE (f.from_id = ? OR f.to_id = ?) AND f.status = 'accepted'
+        ORDER BY f.created_at DESC
+        """
+        cursor = conn.cursor()
+        cursor.execute(sql, (user_id, user_id, user_id, user_id))
+        result = cursor.fetchall()
+        if result:
+            return [{"id": row[0], "friend_id": row[1], "username": row[2]} for row in result]
+        return []
+    except sqlite3.Error as e:
+        print(e)
+        return None
+
+def remove_friend(conn, user_id, friend_id):
+    try:
+        sql = """DELETE FROM friends
+        WHERE ((from_id = ? AND to_id = ?) OR (from_id = ? AND to_id = ?))
+        AND status = 'accepted'
+        """
+        cursor = conn.cursor()
+        cursor.execute(sql, (user_id, friend_id, friend_id, user_id))
+        conn.commit()
+        return cursor.rowcount > 0
+    except sqlite3.Error as e:
+        print(e)
+        return None
 
 if __name__ == "__main__":
     database = "Enteka.db"

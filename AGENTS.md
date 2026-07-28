@@ -91,16 +91,27 @@ src/
 - `GET /users/search?query=username` — searches users by username prefix via `search_users(conn, query)` in `database.py`, returns `[{ id, username }]` or `null`
 - `GET /users/suggestions` — JWT auth → returns random user suggestions (excluding caller) for NewMessage default list
 - `POST /chats` — { user2_id } (user1 from JWT) → normalizes IDs, generates UUID → SHA-256 hash, inserts into `chats`, prevents duplicates via UNIQUE constraint, returns `{ chat_id, passkey_hash }`. On UNIQUE violation (duplicate chat), catches `IntegrityError` and returns the existing chat instead of failing.
-- `GET /chats` — JWT auth → returns all chats for the authenticated user (`{ auth, chats: [...] }`). Filters out empty chats (no messages). Each chat includes `last_message` and `last_timestamp` (formatted as `HH:MM`).
-- WebSocket `/ws/{chat_id}` — connects via JWT token as query param, broadcasts new messages to all connected clients in the chat room in real-time via `ConnectionManager`. Handles `message`, `typing`, and `stop_typing` event types. Typing events broadcast to others only (excludes sender via `exclude` parameter on `broadcast`).
+- `GET /chats` — JWT auth → returns all chats for the authenticated user (`{ auth, chats: [...] }`). Filters out empty chats (no messages). Each chat includes `last_message`, `last_image`, and `last_timestamp` (formatted as `HH:MM`).
+- `POST /upload` — accepts multipart file via `UploadFile`, saves to `uploads/` with UUID filename, returns `{ image_url }`. Served via custom `GET /uploads/{filename}` endpoint that decrypts on the fly.
+- `POST /friends/request/{user_id}` — JWT auth → send friend request (status: pending)
+- `GET /friends/requests` — JWT auth → list incoming pending requests with sender's username
+- `POST /friends/accept/{request_id}` — JWT auth → accept friend request (status → accepted)
+- `POST /friends/reject/{request_id}` — JWT auth → reject friend request (status → rejected)
+- `GET /friends` — JWT auth → list accepted friends
+- `DELETE /friends/{friend_id}` — JWT auth → remove friend
+- WebSocket `/ws/{chat_id}` — connects via JWT token as query param, broadcasts new messages to all connected clients in the chat room in real-time via `ConnectionManager`. Handles `message`, `image`, `typing`, and `stop_typing` event types. `image` type accepts `image_url` (from prior upload) and optional `content` caption. Typing and stop_typing events broadcast to others only (excludes sender via `exclude` parameter on `broadcast`).
 - `POST /messages` — { chat_id, content } (sender from JWT) → inserts into `messages`, returns `{ auth, message_id }`
-- `GET /messages/{chat_id}` — JWT auth → returns all messages for a chat ordered by timestamp, each message has `is_mine` (boolean) based on authenticated user. Timestamps formatted as `HH:MM` on the backend.
+- `GET /messages/{chat_id}` — JWT auth → returns all messages for a chat ordered by timestamp, each message has `is_mine` (boolean) based on authenticated user. Messages include optional `image` field. Timestamps formatted as `HH:MM` on the backend.
 - `users` table: id, username (UNIQUE), email (UNIQUE), password (hashed)
 - `chats` table: id, user1_id, user2_id, passkey_hash (SHA-256 of UUID), created_at, UNIQUE(user1_id, user2_id)
-- `messages` table: id, chat_id, sender_id, content, timestamp
-- `database.py` functions: `create_connection`, `create_table`, `insert_user`, `get_user_hash`, `search_users`, `create_chat`, `get_chat_passkey_hash`, `get_user_by_username`, `get_user_by_id`, `insert_message`, `get_messages_by_chat_id`, `get_last_message_by_chat_id`, `get_chats_by_user_id`, `get_user_suggestions`
+- `messages` table: id, chat_id, sender_id, content, image (TEXT, nullable), timestamp
+- `friends` table: id, from_id, to_id, status (pending/accepted/rejected), created_at, UNIQUE(from_id, to_id)
+- `database.py` functions: `create_connection`, `create_table`, `insert_user`, `get_user_hash`, `search_users`, `create_chat`, `get_chat_passkey_hash`, `get_user_by_username`, `get_user_by_id`, `insert_message`, `get_messages_by_chat_id`, `get_last_message_by_chat_id`, `get_chats_by_user_id`, `get_user_suggestions`, `send_friend_request`, `accept_friend_request`, `reject_friend_request`, `get_pending_requests`, `get_friends`, `remove_friend`
 - CORS enabled for localhost:5173, localhost:8000, and http://{P_IP}:5173 (for phone testing — set P_IP in Backend/.env)
 - `authenticate_caller(conn, authorization)` helper extracted in `main.py` — reduces 15-line repeated auth block across 5 endpoints to 3 lines each. Returns `(caller_id, error_or_none)` tuple on all paths.
+- Image upload: `POST /upload` saves files to `Backend/uploads/` with UUID filenames, served via custom `GET /uploads/{filename}` endpoint that decrypts on the fly.
+- Friends system: single `friends` table with `status` column (pending/accepted/rejected) handles request/accept flow. No separate `friend_requests` table needed.
+- At-rest encryption: message content is encrypted with Fernet (symmetric AES) before being stored in the database. `ENCRYPTION_KEY` in `Backend/.env` controls the key. If unset, messages are stored as plaintext. Decryption happens transparently at the database layer — no changes needed in API or WebSocket endpoints. Image files are also encrypted on disk and decrypted on the fly when served via `GET /uploads/{filename}`.
 
 **Known issues fixed so far:**
 - ~~Passwords stored in plain text~~ → fixed with bcrypt
@@ -139,10 +150,14 @@ src/
 15. ~~Typing indicator~~ → done, animated dots with custom `@keyframes typing-dot` in `index.css`, 1.5s idle timer, `exclude=websocket` on backend
 16. ~~Auto-scroll on new messages~~ → done, `MessageList` uses `useRef` + `scrollIntoView`
 17. ~~Timestamp visibility on own messages~~ → done, `text-white/65` on purple bubbles vs `text-gray-400` on dark
+18. Add image upload UI (file picker icon in MessageInput, upload via POST /upload, send via WebSocket)
+19. Display images in MessageBubble (render `<img>` when message has `image_url`)
+20. Build friends list UI (sidebar tabs or separate page, friend requests with accept/reject)
+21. Add `uploads/` to .gitignore (done — already added)
 
 ## Environment config
 
-- `Backend/.env` — backend secrets (SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, P_IP). Ignored by git; copy from `.env.example`.
+- `Backend/.env` — backend secrets (SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, P_IP, ENCRYPTION_KEY). Ignored by git; copy from `.env.example`.
 - Root `.env` — frontend Vite vars (VITE_PERSONAL_IP). Ignored by git; copy from `.env.example`.
 - Set `VITE_PERSONAL_IP` and `P_IP` to your laptop's local network IP (e.g. `192.168.1.112`) to test the app from your phone on the same WiFi.
 
