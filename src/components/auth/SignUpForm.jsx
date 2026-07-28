@@ -2,6 +2,8 @@ import logo from "../../assets/EntekaLogo.png"
 import { useState } from "react"
 import { useNavigate } from "react-router-dom";
 import { signUpDataPython } from "../api/client"
+import { Eye, EyeOff } from "lucide-react"
+
 
 export default function SignUpForm({onSwitch, setIsAuthenticated, setUserName}) {
     let navigate = useNavigate()
@@ -13,6 +15,7 @@ export default function SignUpForm({onSwitch, setIsAuthenticated, setUserName}) 
     });
 
     const [errorMessage, setErrorMessage] = useState('')
+    const [showPassword, setShowPassword] = useState(false)
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -47,7 +50,15 @@ export default function SignUpForm({onSwitch, setIsAuthenticated, setUserName}) 
                 <input value={formData.email} onChange={handleChange} type="email" name="email" id="signUpEmail" className="w-62.5 text-[#F0F0F5] border-none rounded-[1.1rem] h-9.25 bg-[#2F3347] p-0 box-border focus:outline-none pl-3.5 focus:box-border" required />
                 
                 <label htmlFor="signUpPassword" className="text-2xl text-[#F0F0F5]">Password</label>
-                <input value={formData.password} onChange={handleChange} type="password" name="password" id="signUpPassword" className="w-62.5 text-[#F0F0F5] border-none rounded-[1.1rem] h-9.25 bg-[#2F3347] p-0 box-border focus:outline-none pl-3.5 focus:box-border" required />
+                <div className="relative w-62.5">
+                    <input value={formData.password} type={showPassword ? "text" : "password"} name="password" id="signUpPassword" onChange={handleChange}
+                        className="w-full text-[#F0F0F5] border-none rounded-[1.1rem] h-9.25 bg-[#2F3347] p-0
+                        box-border focus:outline-none pl-3.5 pr-10 focus:box-border" required />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-[#9B9DB8] hover:text-white">
+                        {showPassword ?  <Eye size={20} /> : <EyeOff size={20} /> }
+                    </button>
+                </div>      
                 {errorMessage &&
                     <p className="text-red-400 text-sm">{errorMessage}</p>
                 }
