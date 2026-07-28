@@ -58,7 +58,7 @@ src/
     chat/
       WelcomeView.jsx     — "Hello, {userName}!" + "Start a new chat!" button (calls turnOffWelcomeMode prop)
       NewMessage.jsx      — "To:" recipient input + suggestions/search list. Accepts `setSelectedChat` and `bumpChatRefresh` props; `handleUserClick` calls `createChat` then `setSelectedChat({ id, username, chat_id })` to open ChatView with a real chat, then calls `bumpChatRefresh()` to refresh sidebar. Has searchText, users state. useEffect on [searchText] with 300ms debounce (calls `search` from client.js, sets users state, shows "No Users found." card when empty). Resets users on empty input via else branch.
-      ChatView.jsx        — composes ChatHeader + MessageList + MessageInput. Accepts `selectedChat`, `handleBack`, `bumpChatRefresh`, and `userName` props. Owns messages + loading state; fetches real messages via `getMessages` on mount/chat change. Sends/receives messages via WebSocket (no POST). WebSocket URL built from `WS_BASE` (imported from client.js) + chat_id. Has `handleTyping` function with 1.5s idle timer, `typingUser` state, and `typingTimerRef`. `onmessage` handles `new_message`, `typing`, and `stop_typing` event types. Calls `bumpChatRefresh()` on new messages to update sidebar. Maps backend `content` → `text`, compares `data.username === userName` for `isMine`.
+      ChatView.jsx        — composes ChatHeader + MessageList + MessageInput. Accepts `selectedChat`, `handleBack`, `bumpChatRefresh`, and `userName` props. Owns messages + loading state; fetches real messages via `getMessages` on mount/chat change. Sends/receives messages via WebSocket (no POST). WebSocket URL built from `WS_BASE` (imported from client.js) + chat_id. Has `handleTyping` function with 1s idle timer, `typingUser` state, and `typingTimerRef`. `onmessage` handles `new_message`, `typing`, and `stop_typing` event types. Calls `bumpChatRefresh()` on new messages to update sidebar. Uses generation counter (`genRef`) to ignore stale WebSocket handlers and prevent duplicate messages. Maps backend `content` → `text`, compares `data.username === userName` for `isMine`.
       ChatHeader.jsx      — profile pic + username. Accepts `username` prop to display the selected chat user's name and `handleBack` prop for back arrow.
       MessageList.jsx     — renders MessageBubble list, scrollable (flex-1 + overflow-y-auto + min-h-0), auto-scrolls to bottom on new messages via `useRef` + `scrollIntoView`. Accepts `typingUser` prop to render animated typing dots.
       MessageBubble.jsx   — { text, timestamp, isMine } → right-aligned purple bubble with `text-white/65` timestamp if isMine, left-aligned dark bubble with `text-gray-400` timestamp otherwise
@@ -115,6 +115,7 @@ src/
 - ~~`email-validator` missing from requirements~~ → fixed, added to `requirements.txt`
 - ~~`encryption.py:verify` redundant `if x else` pattern~~ → simplified to direct return
 - ~~`database.py:create_table` misleading print message~~ → updated to reflect all 3 tables
+- ~~Duplicate WebSocket messages from stale connections (React Strict Mode double-mount)~~ → fixed with generation counter (`genRef`) that guards all WS handlers, ignores stale connections
 
 **Not yet implemented (backend):**
 *(none — all planned backend features are implemented)*
