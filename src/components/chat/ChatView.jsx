@@ -10,13 +10,17 @@ export default function ChatView({selectedChat, handleBack, bumpChatRefresh, use
     const [typingUser, setTypingUser] = useState(null)
     const wsRef = useRef(null)
     const typingTimerRef = useRef(null)
+    const isIntentionalCloseRef = useRef(false)
+    const reconnectAttemptRef = useRef(0)
+    const reconnectTimerRef = useRef(null)
+    const genRef = useRef(0)
     
 
     function addMessage(text) {
-       if (wsRef.current?.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify({ type: "message", content: text }))
-        wsRef.current.send(JSON.stringify({ type: "stop_typing" }))
-       }
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({ type: "message", content: text }))
+            wsRef.current.send(JSON.stringify({ type: "stop_typing" }))
+        }
        if (typingTimerRef.current) clearTimeout(typingTimerRef.current)
     }
 
@@ -26,20 +30,30 @@ export default function ChatView({selectedChat, handleBack, bumpChatRefresh, use
         }
         if (typingTimerRef.current) clearTimeout(typingTimerRef.current)
         
-            typingTimerRef.current = setTimeout(() => {
-                if (wsRef.current?.readyState === WebSocket.OPEN) {
-                    wsRef.current.send(JSON.stringify({ type: "stop_typing" }))
-                }
-            }, 1000)
+        typingTimerRef.current = setTimeout(() => {
+            if (wsRef.current?.readyState === WebSocket.OPEN) {
+                wsRef.current.send(JSON.stringify({ type: "stop_typing" }))
+            }
+        }, 1000)
     }
 
-    useEffect(() => {
+    function connect() {
+        const myGen = ++genRef.current
+        if (wsRef.current) {
+            wsRef.current.onclose = null
+            wsRef.current.close()
+        }
         const token = localStorage.getItem('token')
         const wsUri = `${WS_BASE}/ws/${selectedChat.chat_id}?token=${token}`
         const websocket = new WebSocket(wsUri)
         wsRef.current = websocket
 
+        websocket.onopen = () => {
+            reconnectAttemptRef.current = 0
+        }
+
         websocket.onmessage = (event) => {
+            if (myGen !== genRef.current) return
             const data = JSON.parse(event.data)
             if (data.type === "new_message") {
                 const isMine = data.username === userName
@@ -57,11 +71,35 @@ export default function ChatView({selectedChat, handleBack, bumpChatRefresh, use
             }
         }
 
-        return () => {
-            websocket.close()
-            if (typingTimerRef.current) clearTimeout(typingTimerRef.current)
+        websocket.onerror = (event) => {
+            if (myGen !== genRef.current) return
+            console.error(`${event}`)
         }
 
+        websocket.onclose = () => {
+            if (myGen !== genRef.current) return
+            if (!isIntentionalCloseRef.current) {
+                const max_attempts = 5
+                if (reconnectAttemptRef.current < max_attempts) {
+                    const delay = 1000 * (2 ** reconnectAttemptRef.current)
+                    reconnectAttemptRef.current += 1
+                    reconnectTimerRef.current = setTimeout(() => {
+                        connect()
+                    }, delay)
+                }
+            }
+        }
+    }
+
+    useEffect(() => {
+        isIntentionalCloseRef.current = false
+        connect()
+        return () => {
+            isIntentionalCloseRef.current = true
+            if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current)
+            wsRef.current.close()
+            if (typingTimerRef.current) clearTimeout(typingTimerRef.current)
+        }
     }, [selectedChat.chat_id])
 
     useEffect(() => {
