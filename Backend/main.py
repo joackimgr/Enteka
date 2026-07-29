@@ -272,6 +272,16 @@ async def webSocket_endpoint(websocket: WebSocket, chat_id: int, token: str = Qu
                     await manager.broadcast({"type": "typing", "username": username}, chat_id, exclude=websocket)
                 elif msg_type == "stop_typing":
                     await manager.broadcast({"type": "stop_typing", "username": username}, chat_id, exclude=websocket)
+                elif msg_type == "call_offer":
+                    await manager.broadcast({"type": "call_offer", "username": username, "data": data.get("data")}, chat_id, exclude=websocket)
+                elif msg_type == "call_answer":
+                    await manager.broadcast({"type": "call_answer", "username": username, "data": data.get("data")}, chat_id, exclude=websocket)
+                elif msg_type == "ice_candidate":
+                    await manager.broadcast({"type": "ice_candidate", "username": username, "data": data.get("data")}, chat_id, exclude=websocket)
+                elif msg_type == "call_end":
+                    await manager.broadcast({"type": "call_end", "username": username}, chat_id, exclude=websocket)
+                elif msg_type == "call_reject":
+                    await manager.broadcast({"type": "call_reject", "username": username}, chat_id, exclude=websocket)
         except WebSocketDisconnect: manager.disconnect(websocket, chat_id)
 
 @app.post("/friends/request/{user_id}")
