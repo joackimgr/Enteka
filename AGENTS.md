@@ -99,7 +99,7 @@ src/
 - `POST /friends/reject/{request_id}` — JWT auth → reject friend request (status → rejected)
 - `GET /friends` — JWT auth → list accepted friends
 - `DELETE /friends/{friend_id}` — JWT auth → remove friend
-- WebSocket `/ws/{chat_id}` — connects via JWT token as query param, broadcasts new messages to all connected clients in the chat room in real-time via `ConnectionManager`. Handles `message`, `image`, `typing`, and `stop_typing` event types. `image` type accepts `image_url` (from prior upload) and optional `content` caption. Typing and stop_typing events broadcast to others only (excludes sender via `exclude` parameter on `broadcast`).
+- WebSocket `/ws/{chat_id}` — connects via JWT token as query param, broadcasts new messages to all connected clients in the chat room in real-time via `ConnectionManager`. Handles `message`, `image`, `typing`, `stop_typing`, `call_offer`, `call_answer`, `ice_candidate`, `call_end`, and `call_reject` event types. `image` type accepts `image_url` (from prior upload) and optional `content` caption. Typing, stop_typing, and all VoIP signaling events broadcast to others only (excludes sender via `exclude` parameter on `broadcast`). VoIP message types forward `data` payload (SDP offer/answer, ICE candidate) without inspecting it — the backend is purely a signaling relay.
 - `POST /messages` — { chat_id, content } (sender from JWT) → inserts into `messages`, returns `{ auth, message_id }`
 - `GET /messages/{chat_id}` — JWT auth → returns all messages for a chat ordered by timestamp, each message has `is_mine` (boolean) based on authenticated user. Messages include optional `image` field. Timestamps formatted as `HH:MM` on the backend.
 - `users` table: id, username (UNIQUE), email (UNIQUE), password (hashed)
@@ -129,7 +129,24 @@ src/
 - ~~Duplicate WebSocket messages from stale connections (React Strict Mode double-mount)~~ → fixed with generation counter (`genRef`) that guards all WS handlers, ignores stale connections
 
 **Not yet implemented (backend):**
-*(none — all planned backend features are implemented)*
+- VoIP signaling: implemented on `feature/voip-backend` branch (not yet merged to main). See "VoIP status" section below.
+
+## VoIP status
+
+**Backend** — implemented on `feature/voip-backend` branch (not yet merged to main):
+- 5 new WebSocket message types: `call_offer`, `call_answer`, `ice_candidate`, `call_end`, `call_reject`
+- Backend forwards `data` payload transparently — no inspection, no database storage
+- Uses existing `ConnectionManager.broadcast()` with `exclude=websocket` so sender doesn't echo
+- `call_end` and `call_reject` are notification-only (no `data` field)
+- No new Python libraries required
+
+**Not yet implemented (frontend — your friend's side):**
+- Install `simple-peer` npm package
+- Create `CallContext.jsx` managing call state (idle/calling/ringing/connected), microphone via `getUserMedia`, and simple-peer instance for signal exchange
+- Create `IncomingCall.jsx` overlay (accept/reject buttons)
+- Create `ActiveCall.jsx` bar (duration timer, end call, mute toggle)
+- Wire phone icon in `ChatHeader.jsx` to initiate calls
+- Wrap `App.jsx` with `CallProvider`
 
 ## Frontend TODO (in rough priority order)
 

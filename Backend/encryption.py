@@ -6,7 +6,10 @@ import os
 load_dotenv()
 
 encryption_key = os.getenv("ENCRYPTION_KEY")
-cipher = Fernet(encryption_key) if encryption_key else None
+try:
+    cipher = Fernet(encryption_key) if encryption_key else None
+except Exception:
+    cipher = None
 
 def hashing(password):
     byte = password.encode('utf-8')

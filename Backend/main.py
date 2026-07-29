@@ -42,7 +42,8 @@ class ConnectionManager():
         self.active_connections[chat_id].append(websocket)
 
     def disconnect(self, websocket, chat_id):
-        self.active_connections[chat_id].remove(websocket)
+        if websocket in self.active_connections.get(chat_id, []):
+            self.active_connections[chat_id].remove(websocket)
         if not self.active_connections[chat_id]:
             del self.active_connections[chat_id]
 
@@ -258,7 +259,7 @@ async def webSocket_endpoint(websocket: WebSocket, chat_id: int, token: str = Qu
                                             }, chat_id)
                 elif msg_type == "image":
                     content = data.get("content", "")
-                    image_url = data["image_url"]
+                    image_url = data.get("image_url")
                     message_id = insert_message(conn, chat_id, caller_id, content, image_url)
                     await manager.broadcast({"type": "new_message",
                                             "message_id": message_id,

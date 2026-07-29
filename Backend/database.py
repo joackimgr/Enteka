@@ -58,7 +58,7 @@ def create_table(conn):
         """
         cursor = conn.cursor()
         cursor.executescript(sql_create_tables)
-        print("Users table created successfully.")
+        print("Tables created successfully.")
     except sqlite3.Error as e:
         print("Failed to create tables.")
         print(e)
