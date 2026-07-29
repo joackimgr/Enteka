@@ -1,0 +1,2 @@
+conn = None
+manager = None
