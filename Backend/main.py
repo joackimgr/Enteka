@@ -1,9 +1,10 @@
+import setup
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from database import create_connection, create_table
-from connection_manager import ConnectionManager
+from db.database import create_connection, create_table
+from core.connection_manager import ConnectionManager
 from routers import auth, chats, friends, uploads, ws
-import state
+from core import state
 import os
 
 state.conn = create_connection("Enteka.db")
@@ -25,7 +26,6 @@ app.include_router(chats.router)
 app.include_router(friends.router)
 app.include_router(uploads.router)
 app.include_router(ws.router)
-
 
 @app.get("/")
 async def read_root():

@@ -1,8 +1,8 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
-from database import get_user_by_username, insert_message
-from auth import verify_token
+from db.database import get_user_by_username, insert_message
+from security.auth import verify_token
 from datetime import datetime
-import state
+from core import state
 
 router = APIRouter(tags=["websocket"])
 
