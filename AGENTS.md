@@ -83,7 +83,7 @@ src/
 
 ## Backend status
 
-**Implemented (`main.py`, `database.py`, `encryption.py`, `auth.py`):**
+**Implemented (files in `db/`, `security/`, `core/`, `routers/`, root `main.py` + `setup.py`):**
 - `POST /signup` — { username, email, password } → checks username uniqueness via `get_user_hash`, hashes password with bcrypt, inserts user, returns JWT token → { auth, token, username }
 - `POST /login` — { username, password } → looks up hash, verifies with bcrypt, returns JWT token → { auth, token, username }
 - `POST /verify` — { token } → verifies JWT, returns username → { auth, username }
@@ -99,7 +99,7 @@ src/
 - `POST /friends/reject/{request_id}` — JWT auth → reject friend request (status → rejected)
 - `GET /friends` — JWT auth → list accepted friends
 - `DELETE /friends/{friend_id}` — JWT auth → remove friend
-- WebSocket `/ws/{chat_id}` — connects via JWT token as query param, broadcasts new messages to all connected clients in the chat room in real-time via `ConnectionManager`. Handles `message`, `image`, `typing`, and `stop_typing` event types. `image` type accepts `image_url` (from prior upload) and optional `content` caption. Typing and stop_typing events broadcast to others only (excludes sender via `exclude` parameter on `broadcast`).
+- WebSocket `/ws/{chat_id}` — connects via JWT token as query param, broadcasts new messages to all connected clients in the chat room in real-time via `ConnectionManager`. Handles `message`, `image`, `typing`, `stop_typing`, `call_offer`, `call_answer`, `ice_candidate`, `call_end`, and `call_reject` event types. `image` type accepts `image_url` (from prior upload) and optional `content` caption. Typing, stop_typing, and all VoIP signaling events broadcast to others only (excludes sender via `exclude` parameter on `broadcast`). VoIP message types forward `data` payload (SDP offer/answer, ICE candidate) without inspecting it — the backend is purely a signaling relay.
 - `POST /messages` — { chat_id, content } (sender from JWT) → inserts into `messages`, returns `{ auth, message_id }`
 - `GET /messages/{chat_id}` — JWT auth → returns all messages for a chat ordered by timestamp, each message has `is_mine` (boolean) based on authenticated user. Messages include optional `image` field. Timestamps formatted as `HH:MM` on the backend.
 - `users` table: id, username (UNIQUE), email (UNIQUE), password (hashed)
@@ -108,7 +108,7 @@ src/
 - `friends` table: id, from_id, to_id, status (pending/accepted/rejected), created_at, UNIQUE(from_id, to_id)
 - `database.py` functions: `create_connection`, `create_table`, `insert_user`, `get_user_hash`, `search_users`, `create_chat`, `get_chat_passkey_hash`, `get_user_by_username`, `get_user_by_id`, `insert_message`, `get_messages_by_chat_id`, `get_last_message_by_chat_id`, `get_chats_by_user_id`, `get_user_suggestions`, `send_friend_request`, `accept_friend_request`, `reject_friend_request`, `get_pending_requests`, `get_friends`, `remove_friend`
 - CORS enabled for localhost:5173, localhost:8000, and http://{P_IP}:5173 (for phone testing — set P_IP in Backend/.env)
-- `authenticate_caller(conn, authorization)` helper extracted in `main.py` — reduces 15-line repeated auth block across 5 endpoints to 3 lines each. Returns `(caller_id, error_or_none)` tuple on all paths.
+- `authenticate_caller(conn, authorization)` helper in `core/utils.py` — reduces 15-line repeated auth block across 5 endpoints to 3 lines each. Raises `HTTPException(401)` on failure, returns `caller_id` on success.
 - Image upload: `POST /upload` saves files to `Backend/uploads/` with UUID filenames, served via custom `GET /uploads/{filename}` endpoint that decrypts on the fly.
 - Friends system: single `friends` table with `status` column (pending/accepted/rejected) handles request/accept flow. No separate `friend_requests` table needed.
 - At-rest encryption: message content is encrypted with Fernet (symmetric AES) before being stored in the database. `ENCRYPTION_KEY` in `Backend/.env` controls the key. If unset, messages are stored as plaintext. Decryption happens transparently at the database layer — no changes needed in API or WebSocket endpoints. Image files are also encrypted on disk and decrypted on the fly when served via `GET /uploads/{filename}`.
@@ -121,15 +121,38 @@ src/
 - ~~Sidebar crashes on `null.map()` when `chats` initial state is `null`~~ → fixed with `(chats || []).map(...)` guard in render and `data && data.chats` guard on setChats
 - ~~Empty chats (no messages) show in sidebar~~ → fixed, backend filters out chats with no messages in `GET /chats`, only appends when `last_msg` is truthy
 - ~~Sidebar doesn't update after creating a new chat or sending a message~~ → fixed, `chatRefresh` counter in HomePage triggers Sidebar re-fetch; `bumpChatRefresh` passed to ChatView and NewMessage
-- ~~`authenticate_caller` helper extracted (auth logic centralized, consistent tuple return on all paths)~~ → fixed in `fix/backend-minor-issues`, merged to main
+- ~~`authenticate_caller` helper extracted (auth logic centralized, consistent tuple return on all paths)~~ → fixed in `fix/backend-minor-issues`, merged to main; later moved to `core/utils.py` with `HTTPException(401)` pattern
 - ~~`GET /messages/{chat_id}` crashes on empty chat (no null guard)~~ → fixed, null check returns `{ auth: True, messages: [] }`
 - ~~`email-validator` missing from requirements~~ → fixed, added to `requirements.txt`
 - ~~`encryption.py:verify` redundant `if x else` pattern~~ → simplified to direct return
 - ~~`database.py:create_table` misleading print message~~ → updated to reflect all 3 tables
 - ~~Duplicate WebSocket messages from stale connections (React Strict Mode double-mount)~~ → fixed with generation counter (`genRef`) that guards all WS handlers, ignores stale connections
+- ~~`print()` scattered across backend~~ → replaced with `logging` module (named loggers, `%(asctime)s [%(levelname)s] %(name)s` format)
+- ~~Backend crashes silently on missing env vars~~ → `setup.py` validates `SECRET_KEY`, `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES` on import; warns if SECRET_KEY is still placeholder
+- ~~All endpoints return 200 even on errors~~ → `authenticate_caller` raises `HTTPException(401)`; all routers return `JSONResponse(status_code=4xx/5xx)` with frontend-compatible body
+- ~~`main.py` was 350+ lines~~ → split into `db/`, `security/`, `core/`, `routers/` directories; `main.py` is now 28 lines
+- ~~Frontend swallowed server error messages~~ → `client.js` catch blocks check `error.response?.data` before falling back to generic message
+- ~~Backend flat file structure~~ → reorganized into `db/`, `security/`, `core/`, `routers/` directories with updated imports
 
 **Not yet implemented (backend):**
-*(none — all planned backend features are implemented)*
+- None. All planned backend features are done.
+
+## VoIP status
+
+**Backend** — implemented (merged to main):
+- 5 new WebSocket message types: `call_offer`, `call_answer`, `ice_candidate`, `call_end`, `call_reject`
+- Backend forwards `data` payload transparently — no inspection, no database storage
+- Uses existing `ConnectionManager.broadcast()` with `exclude=websocket` so sender doesn't echo
+- `call_end` and `call_reject` are notification-only (no `data` field)
+- No new Python libraries required
+
+**Not yet implemented (frontend — your friend's side):**
+- Install `simple-peer` npm package
+- Create `CallContext.jsx` managing call state (idle/calling/ringing/connected), microphone via `getUserMedia`, and simple-peer instance for signal exchange
+- Create `IncomingCall.jsx` overlay (accept/reject buttons)
+- Create `ActiveCall.jsx` bar (duration timer, end call, mute toggle)
+- Wire phone icon in `ChatHeader.jsx` to initiate calls
+- Wrap `App.jsx` with `CallProvider`
 
 ## Frontend TODO (in rough priority order)
 
@@ -158,6 +181,7 @@ src/
 ## Environment config
 
 - `Backend/.env` — backend secrets (SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, P_IP, ENCRYPTION_KEY). Ignored by git; copy from `.env.example`.
+- `Backend/setup.py` — loads .env, configures logging, validates required vars on startup.
 - Root `.env` — frontend Vite vars (VITE_PERSONAL_IP). Ignored by git; copy from `.env.example`.
 - Set `VITE_PERSONAL_IP` and `P_IP` to your laptop's local network IP (e.g. `192.168.1.112`) to test the app from your phone on the same WiFi.
 

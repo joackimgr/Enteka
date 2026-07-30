@@ -1,15 +1,18 @@
 import sqlite3
 import uuid
 import hashlib
-from encryption import encrypt, decrypt
+import logging
+from security.encryption import encrypt, decrypt
+
+logger = logging.getLogger("enteka.database")
 
 def create_connection(db_file):
     conn = None
     try:
         conn = sqlite3.connect(db_file)
-        print(f"Connected to database: {db_file}")
+        logger.info("Connected to database: %s", db_file)
     except sqlite3.Error as e:
-        print(e)
+        logger.error(e)
 
     return conn
 
@@ -58,10 +61,10 @@ def create_table(conn):
         """
         cursor = conn.cursor()
         cursor.executescript(sql_create_tables)
-        print("Users table created successfully.")
+        logger.info("Tables created successfully.")
     except sqlite3.Error as e:
-        print("Failed to create tables.")
-        print(e)
+        logger.error("Failed to create tables.")
+        logger.error(e)
     
 def insert_user(conn, username, email, password):
     try:
@@ -69,10 +72,10 @@ def insert_user(conn, username, email, password):
         cursor = conn.cursor()
         cursor.execute(sql, (username, email, password))
         conn.commit()
-        print("User inserted successfully.")
+        logger.info("User '%s' inserted successfully.", username)
     except sqlite3.Error as e:
-        print("Failed to insert user.")
-        print(e)
+        logger.error("Failed to insert user.")
+        logger.error(e)
 
 def get_user_hash(conn, username):
     try:
@@ -85,8 +88,8 @@ def get_user_hash(conn, username):
         return None
     
     except sqlite3.Error as e:
-        print("Failed to get user hash.")
-        print(e)
+        logger.error("Failed to get user hash.")
+        logger.error(e)
         return None
     
 def search_users(conn, query):
@@ -97,8 +100,8 @@ def search_users(conn, query):
             result = cursor.fetchall()
             return [{"id": row[0], "username": row[1]} for row in result]
         except sqlite3.Error as e:
-            print("Failed to search user.")
-            print(e)
+            logger.error("Failed to search user.")
+            logger.error(e)
             return None
 
 def create_chat(conn, user1_id, user2_id):
@@ -121,11 +124,10 @@ def create_chat(conn, user1_id, user2_id):
             return { "chat_id": result[0], "passkey_hash": result[1] }
         return None
     except sqlite3.Error as e:
-        print("Failed to create chat.")
-        print(e)
+        logger.error("Failed to create chat.")
+        logger.error(e)
         return None
 
-    
 def get_chat_passkey_hash(conn, chat_id):
     try:
         sql = "SELECT passkey_hash FROM chats WHERE id = ?" 
@@ -137,8 +139,8 @@ def get_chat_passkey_hash(conn, chat_id):
         return None
     
     except sqlite3.Error as e:
-        print("Failed to get passkey hash.")
-        print(e)
+        logger.error("Failed to get passkey hash.")
+        logger.error(e)
         return None
 
 def get_user_by_username(conn, username):
@@ -152,8 +154,8 @@ def get_user_by_username(conn, username):
         return None
     
     except sqlite3.Error as e:
-        print("Failed to user.")
-        print(e)
+        logger.error("Failed to find user by username.")
+        logger.error(e)
         return None
     
 def get_user_by_id(conn, id):
@@ -166,8 +168,8 @@ def get_user_by_id(conn, id):
             return result[0]
         return None
     except sqlite3.Error as e:
-        print("Failed to find user.")
-        print(e)
+        logger.error("Failed to find user by id.")
+        logger.error(e)
         return None
     
 def insert_message(conn, chat_id, sender_id, message, image=None):
@@ -182,8 +184,8 @@ def insert_message(conn, chat_id, sender_id, message, image=None):
         return None
     
     except sqlite3.Error as e:
-        print("Failed to send message.")
-        print(e)
+        logger.error("Failed to send message.")
+        logger.error(e)
         return None
     
 def get_messages_by_chat_id(conn, chat_id):
@@ -201,8 +203,8 @@ def get_messages_by_chat_id(conn, chat_id):
         return None
     
     except sqlite3.Error as e:
-        print("Failed to get messages.")
-        print(e)
+        logger.error("Failed to get messages.")
+        logger.error(e)
         return None
     
 def get_last_message_by_chat_id(conn, chat_id):
@@ -215,8 +217,8 @@ def get_last_message_by_chat_id(conn, chat_id):
             return (decrypt(result[0]), result[1], result[2])
         return None
     except sqlite3.Error as e:
-        print("Failed to get last message")
-        print(e)
+        logger.error("Failed to get last message.")
+        logger.error(e)
         return None
     
 def get_chats_by_user_id(conn, user_id):
@@ -235,8 +237,8 @@ def get_chats_by_user_id(conn, user_id):
         return None
     
     except sqlite3.Error as e:
-        print("Failed to get chat.")
-        print(e)
+        logger.error("Failed to get chats.")
+        logger.error(e)
         return None
 
 def get_user_suggestions(conn, caller_id, limit = 10):
@@ -252,8 +254,8 @@ def get_user_suggestions(conn, caller_id, limit = 10):
         result = cursor.fetchall()
         return [{"id": row[0], "username": row[1]} for row in result]
     except sqlite3.Error as e:
-        print("Failed to find users.")
-        print(e)
+        logger.error("Failed to get user suggestions.")
+        logger.error(e)
         return None
     
 def send_friend_request(conn, from_id, to_id):
@@ -274,7 +276,7 @@ def send_friend_request(conn, from_id, to_id):
     except sqlite3.IntegrityError:
         return None
     except sqlite3.Error as e:
-        print(e)
+        logger.error(e)
         return None
 
 def accept_friend_request(conn, request_id):
@@ -285,7 +287,7 @@ def accept_friend_request(conn, request_id):
         conn.commit()
         return cursor.rowcount > 0
     except sqlite3.Error as e:
-        print(e)
+        logger.error(e)
         return None
 
 def reject_friend_request(conn, request_id):
@@ -296,7 +298,7 @@ def reject_friend_request(conn, request_id):
         conn.commit()
         return cursor.rowcount > 0
     except sqlite3.Error as e:
-        print(e)
+        logger.error(e)
         return None
 
 def get_pending_requests(conn, user_id):
@@ -314,7 +316,7 @@ def get_pending_requests(conn, user_id):
             return [{"id": row[0], "from_id": row[1], "username": row[2], "created_at": row[3]} for row in result]
         return []
     except sqlite3.Error as e:
-        print(e)
+        logger.error(e)
         return None
 
 def get_friends(conn, user_id):
@@ -335,7 +337,7 @@ def get_friends(conn, user_id):
             return [{"id": row[0], "friend_id": row[1], "username": row[2]} for row in result]
         return []
     except sqlite3.Error as e:
-        print(e)
+        logger.error(e)
         return None
 
 def remove_friend(conn, user_id, friend_id):
@@ -349,7 +351,7 @@ def remove_friend(conn, user_id, friend_id):
         conn.commit()
         return cursor.rowcount > 0
     except sqlite3.Error as e:
-        print(e)
+        logger.error(e)
         return None
     
 def search_friends(conn, user_id, query):
@@ -379,4 +381,3 @@ if __name__ == "__main__":
         conn.close()
     else:
         print("Error! Cannot create the database connection.")
-    

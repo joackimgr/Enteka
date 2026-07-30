@@ -11,10 +11,10 @@ export const loginDataPython = async (data) => {
             username: data.username,
             password: data.password
         });
-        console.log('Data sent successfully:', response.data);
         return response.data
     } catch (error) {
         console.error('Error sending data:', error);
+        if (error.response?.data) return error.response.data;
         return { auth: false, message: 'Network error. Try again.' }
     }
 }
@@ -26,10 +26,10 @@ export const signUpDataPython = async (data) => {
             email: data.email,
             password: data.password
         });
-        console.log('Data sent successfully:', response.data);
         return response.data
     } catch (error) {
         console.error('Error sending data:', error);
+        if (error.response?.data) return error.response.data;
         return { auth: false, message: 'Network error. Try again.' }
     }
 }
@@ -42,6 +42,7 @@ export const verifyToken = async (token) => {
         return response.data
     } catch (error) {
         console.error('Error verifying token', error)
+        if (error.response?.data) return error.response.data;
         return {auth: false, message: 'Network error. Try again.'}
     }
 }
@@ -78,7 +79,8 @@ export const createChat = async (user2Id) => {
         )
         return response.data
     } catch (error) {
-        console.error("Error searching user", error)
+        console.error("Error creating chat", error)
+        if (error.response?.data) return error.response.data;
         return null
     }
 }
