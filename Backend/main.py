@@ -341,3 +341,15 @@ async def remove_friends(friend_id: int, authorization: str = Header(None)):
             return {"auth": True, "message": "Friend removed."}
         return {"auth": False, "message": "Friend not found."}
     return {"message": "Error! Cannot establish the database connection."}
+
+@app.get("/friends/search")
+async def search_friendslist(query: str = "", authorization: str = Header(None)):
+    if conn is not None:
+        caller_id, error = authenticate_caller(conn, authorization)
+        if error:
+            return error
+        if not query:
+            return {"auth": True, "friends": []}
+        friends = search_friends(conn, caller_id, query)
+        return {"auth": True, "friends": friends}
+    return {"message": "Error! Cannot establish the database connection."}

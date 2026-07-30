@@ -56,6 +56,19 @@ export const search = async (query) => {
     }
 }
 
+export const searchFriends = async (query) => {
+    try {
+        const token = localStorage.getItem("token")
+        const response = await axios.get(`${BASE_URL}/friends/search?query=${query}`, 
+            { headers: { Authorization: `Bearer ${token}` } }
+        )
+        return response.data
+    } catch (error) {
+        console.error("Error searching friend", error)
+        return null
+    }
+}
+
 export const createChat = async (user2Id) => {
     try {
         const token = localStorage.getItem("token")
@@ -105,7 +118,81 @@ export const getChats = async () => {
         })
         return response.data
     } catch (error) {
-        console.log("Error searching chat", error)
+        console.error("Error searching chat", error)
         return null
+    }
+}
+
+export const getFriendsList = async () => {
+    try {
+        const token = localStorage.getItem("token")
+        const response = await axios.get(`${BASE_URL}/friends`, {
+            headers: {Authorization: `Bearer ${token}`}
+        })
+        return response.data
+    } catch (error) {
+        console.error("Error searching friends", error)
+    }
+}
+
+export const getFriendRequests = async () => {
+    try {
+        const token = localStorage.getItem("token")
+        const response = await axios.get(`${BASE_URL}/friends/requests`, {
+            headers: {Authorization: `Bearer ${token}`}
+        })
+        return response.data
+    } catch (error) {
+        console.error("Error getting friend requests", error)
+    }
+}
+
+export const sendFriendRequest = async (user_id) => {
+    try {
+        const token = localStorage.getItem("token")
+        const response = await axios.post(`${BASE_URL}/friends/request/${user_id}`, 
+            { user2_id: user_id }, 
+            { headers: {Authorization: `Bearer ${token}` }
+        })
+        console.log("Friend Request has been sent")
+        return response.data
+    } catch (error) {
+        console.error("Error sending request", error)
+    }
+}
+
+export const acceptFriendRequest = async (request_id) => {
+    try {
+        const token = localStorage.getItem("token")
+        const response = await axios.post(`${BASE_URL}/friends/accept/${request_id}`, {}, {
+            headers: {Authorization: `Bearer ${token}`}
+        })
+        return response.data
+    } catch (error) {
+        console.error("Error accepting friend request", error)
+    }
+}
+
+export const rejectFriendRequest = async (request_id) => {
+    try {
+        const token = localStorage.getItem("token")
+        const response = await axios.post(`${BASE_URL}/friends/reject/${request_id}`, {}, {
+            headers: {Authorization: `Bearer ${token}`}
+        })
+        return response.data
+    } catch (error) {
+        console.error("Error rejecting friend request", error)
+    }
+}
+
+export const deleteFriend = async (friend_id) => {
+    try {
+        const token = localStorage.getItem("token")
+        const response = await axios.delete(`${BASE_URL}/friends/${friend_id}`, {
+            headers: {Authorization: `Bearer ${token}`}
+        })
+        return response.data
+    } catch (error) {
+        console.error("Error deleting friend", error)
     }
 }

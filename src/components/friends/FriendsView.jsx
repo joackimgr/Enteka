@@ -1,27 +1,28 @@
 import { useState, useEffect } from "react"
 import { CircleUserRound, SearchAlert } from "lucide-react"
-import { createChat, searchFriends } from "../api/client.js"
+import { search, sendFriendRequest } from "../api/client.js"
+import { Search } from "lucide-react"
 
-export default function NewMessage({setSelectedChat, bumpChatRefresh}) {
+export default function FriendsView(props) {
     const [searchText, setSearchText] = useState('')
     const [users, setUsers] = useState([])
+    const [sentRequest, setSentRequest] = useState(new Set())
 
     const listToShow = searchText !== "" ? users : []
 
     async function handleUserClick(user) {
-        let chat = await createChat(user.id)
-        setSelectedChat({id: user.id, username: user.username, chat_id: chat.chat.chat_id})
-        if (bumpChatRefresh) bumpChatRefresh()
+        await sendFriendRequest(user.id)
+        setSentRequest(prev => new Set(prev).add(user.id))
     }
 
     const userNames = listToShow.map((user) => {
         return (
-        <div key={user.id} className="flex items-center justify-between bg-[#272B3D] rounded-[1.2rem] p-2.75 mb-2.75 text-3xl cursor-pointer hover:bg-[#363B52] transition-colors duration-100 ease-in" onClick={() => handleUserClick(user)}>
+        <div key={user.id} onClick={() => handleUserClick(user)} className="flex items-center justify-between bg-[#272B3D] rounded-[1.2rem] p-2.75 mb-2.75 text-3xl cursor-pointer hover:bg-[#363B52] transition-colors duration-100 ease-in">
             <div className="flex items-center gap-2.75 ml-5 font-light">
                 <CircleUserRound size={70} alt="Profile" className="text-white" />
                 <p>{`${user.username}`}</p>
             </div>
-            <p>{`Start a chat with ${user.username}`}</p>
+            {sentRequest.has(user.id) ? <p>{`Request Sent`}</p> : <p>{`Send Friend Request`}</p>}
         </div>
         )
     })
@@ -37,24 +38,23 @@ export default function NewMessage({setSelectedChat, bumpChatRefresh}) {
 
         let cancelled = false
         const timeoutId = setTimeout(async () => {
-            const response = await searchFriends(searchText)
-            console.log(response)
-            if (!cancelled) setUsers(response?.friends || [])
+            const response = await search(searchText)
+            const filteredUsers = response ? response.filter(u => u.username !== props.userName) : []
+            if (!cancelled) setUsers(filteredUsers)
         }, 300)
 
         return () => {
             cancelled = true
             clearTimeout(timeoutId)
         }
-    }, [searchText])
+    }, [searchText, props.userName])
 
 
     return (
-
         <div className="bg-[#272B3D] flex flex-col items-center justify-start rounded-4xl p-2.75 text-white">
             <div className="flex items-center w-full bg-[#2F3347] h-auto p-2.75 text-4xl font-light box-border rounded-[1.2rem] gap-2.75 mb-2.75">
-                <label htmlFor="recipientName">To:</label>
-                <input type="text" id="recipientName" onChange={handleSearchText} className="w-full py-2 box-border rounded-[1.2rem] border-0 bg-[#2F3347] text-[30px] text-white focus:outline-none"/>
+                <Search size={30} />
+                <input type="text" id="recipientName" placeholder="Find People" onChange={handleSearchText} className="w-full py-2 box-border rounded-[1.2rem] border-0 bg-[#2F3347] text-[30px] text-white focus:outline-none"/>
             </div>
             <div className="flex flex-col p-2.75 w-full bg-[#2F3347] box-border rounded-[1.2rem] flex-1">
                 <p className="text-2xl mt-1.25 mb-3.75">Search Results:</p>
