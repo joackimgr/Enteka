@@ -53,29 +53,31 @@ src/
       LoginForm.jsx       — controlled form (username, password), calls loginDataPython, shows backend error, navigates to /home on auth success, saves JWT token to localStorage
       SignUpForm.jsx      — controlled form (username, email, password), calls signUpDataPython, same error/nav pattern, saves JWT token to localStorage
     layout/
-      NavBar.jsx          — logo + ENTEKA text (logo calls `goHome` prop to reset HomePage), settings icon (toggles chat/settings mode via prop), profile icon with dropdown (Log Out button, click-outside-to-close, removes JWT token and navigates to /)
-      Sidebar.jsx         — fetches real chat list via `getChats()` on mount and re-fetches on `chatRefresh` prop change. Renders loading/empty/list states. Chat cards use `bg-[#2F3347]` with `overflow-y-auto` scrolling. "Account Settings" entry in settings mode.
+      NavBar.jsx          — logo + ENTEKA text (logo calls `goHome` prop to reset HomePage), Users icon (toggles friendsMode via `toggleFriendsMode`), settings icon (toggles chat/settings mode via prop), profile icon with dropdown (Log Out button, click-outside-to-close, removes JWT token and navigates to /)
+      Sidebar.jsx         — fetches real chat list via `getChats()` on mount and re-fetches on `chatRefresh` prop change. Renders loading/empty/list states. Chat cards use `bg-[#2F3347]` with `overflow-y-auto` scrolling. "Account Settings" entry in settings mode. In friendsMode: fetches friends list + pending requests on mount, renders request blocks with accept/reject (Check/X icons), and friends list with click-to-chat via `createChat`. `handleFriendClick` calls `toggleFriendsMode()` after opening chat.
     chat/
       WelcomeView.jsx     — "Hello, {userName}!" + "Start a new chat!" button (calls turnOffWelcomeMode prop)
-      NewMessage.jsx      — "To:" recipient input + suggestions/search list. Accepts `setSelectedChat` and `bumpChatRefresh` props; `handleUserClick` calls `createChat` then `setSelectedChat({ id, username, chat_id })` to open ChatView with a real chat, then calls `bumpChatRefresh()` to refresh sidebar. Has searchText, users state. useEffect on [searchText] with 300ms debounce (calls `search` from client.js, sets users state, shows "No Users found." card when empty). Resets users on empty input via else branch.
+      NewMessage.jsx      — "To:" recipient input + suggestions/search list. Accepts `setSelectedChat` and `bumpChatRefresh` props; `handleUserClick` calls `createChat` then `setSelectedChat({ id, username, chat_id })` to open ChatView with a real chat, then calls `bumpChatRefresh()` to refresh sidebar. Has searchText, users state. useEffect on [searchText] with 300ms debounce (calls `searchFriends` from client.js, sets users state, shows "No Users found." card when empty). Resets users on empty input via else branch. Searches friends only (not all users).
       ChatView.jsx        — composes ChatHeader + MessageList + MessageInput. Accepts `selectedChat`, `handleBack`, `bumpChatRefresh`, and `userName` props. Owns messages + loading state; fetches real messages via `getMessages` on mount/chat change. Sends/receives messages via WebSocket (no POST). WebSocket URL built from `WS_BASE` (imported from client.js) + chat_id. Has `handleTyping` function with 1s idle timer, `typingUser` state, and `typingTimerRef`. `onmessage` handles `new_message`, `typing`, and `stop_typing` event types. Calls `bumpChatRefresh()` on new messages to update sidebar. Uses generation counter (`genRef`) to ignore stale WebSocket handlers and prevent duplicate messages. Maps backend `content` → `text`, compares `data.username === userName` for `isMine`.
       ChatHeader.jsx      — profile pic + username. Accepts `username` prop to display the selected chat user's name and `handleBack` prop for back arrow.
       MessageList.jsx     — renders MessageBubble list, scrollable (flex-1 + overflow-y-auto + min-h-0), auto-scrolls to bottom on new messages via `useRef` + `scrollIntoView`. Accepts `typingUser` prop to render animated typing dots.
       MessageBubble.jsx   — { text, timestamp, isMine } → right-aligned purple bubble with `text-white/65` timestamp if isMine, left-aligned dark bubble with `text-gray-400` timestamp otherwise
       MessageInput.jsx    — text input + send icon, styled as pill; accepts `SendMessage` and `onTyping` props. Calls `onTyping()` on every keystroke for typing indicator.
+    friends/
+      FriendsView.jsx     — search input + debounce + send friend request on user card click. Filters self out of search results via `props.userName`. Shows "Request Sent" confirmation after sending.
     settings/
       SettingsPanel.jsx   — big settings icon by default; account options list (username/password/email/profile picture) when activeSettings prop is true
     api/
-      client.js           — axios calls to backend: loginDataPython(data), signUpDataPython(data), verifyToken(token), search(query), createChat(user2Id), sendMessages(chatId, content), getMessages(chatId). Returns { auth, message, token } or network-error fallback. search returns response.data (list of user dicts) or null on network error. createChat/sendMessages/getMessages send JWT in Authorization header. Exports `API_BASE` and `WS_BASE` constants at the top — change `localhost` in `VITE_PERSONAL_IP` to laptop IP in root `.env` for phone testing. (Moved from SendDataPython.jsx)
+      client.js           — axios calls to backend: loginDataPython(data), signUpDataPython(data), verifyToken(token), search(query), searchFriends(query), createChat(user2Id), sendMessages(chatId, content), getMessages(chatId), getFriendsList(), getFriendRequests(), sendFriendRequest(user_id), acceptFriendRequest(request_id), rejectFriendRequest(request_id), deleteFriend(friend_id). Returns { auth, message, token } or network-error fallback. search returns response.data (list of user dicts) or null on network error. searchFriends returns { auth, friends } with JWT auth. createChat/sendMessages/getMessages send JWT in Authorization header. Exports `API_BASE` and `WS_BASE` constants at the top — change `localhost` in `VITE_PERSONAL_IP` to laptop IP in root `.env` for phone testing. (Moved from SendDataPython.jsx)
   pages/
     AuthPage.jsx          — toggles LoginForm/SignUpForm via showSignUp state + toggleSwitch (prevState => !prevState pattern)
-      HomePage.jsx          — owns chatMode, welcome, activeSettings, selectedChat, chatRefresh state. Renders NavBar + Sidebar + (ChatView | WelcomeView | NewMessage | SettingsPanel) depending on state combo. `handleBack` function sets `selectedChat(null)` to return to WelcomeView/NewMessage. `goHome` function resets all state (closes chat, shows Welcome, switches to chat mode). `bumpChatRefresh()` increments `chatRefresh` counter; passed to ChatView and NewMessage so they can trigger Sidebar re-fetch. Passes `userName` to ChatView for isMine detection.
+      HomePage.jsx          — owns chatMode, welcome, activeSettings, selectedChat, chatRefresh, friendsMode state. Renders NavBar + Sidebar + (ChatView | WelcomeView | NewMessage | SettingsPanel | FriendsView) depending on state combo. `handleBack` function sets `selectedChat(null)` to return to WelcomeView/NewMessage. `goHome` function resets all state (closes chat, shows Welcome, switches to chat mode). `bumpChatRefresh()` increments `chatRefresh` counter; passed to ChatView and NewMessage so they can trigger Sidebar re-fetch. Passes `userName` to ChatView for isMine detection and to FriendsView for self-filtering. `toggleFriendsMode` toggles friendsMode boolean (same prev => !prev pattern).
   App.jsx                 — React Router routes: "/" → AuthPage, "/home" → HomePage (guarded by isAuthenticated), "*" → redirect to "/". Owns isAuthenticated + userName + loading state, restores session via /verify on mount.
   main.jsx                 — wraps App in BrowserRouter
 ```
 
 ### Key state-lifting patterns already established
-- Toggle-between-two-views pattern: `const [x, setX] = useState(bool); function toggle() { setX(prev => !prev) }` — used in AuthPage (showSignUp) and HomePage (chatMode).
+- Toggle-between-two-views pattern: `const [x, setX] = useState(bool); function toggle() { setX(prev => !prev) }` — used in AuthPage (showSignUp) and HomePage (chatMode, friendsMode).
 - One-way state (no toggle needed): `welcome` in HomePage only ever goes true → false via `turnOffWelcomeMode`.
 - Auth state (`isAuthenticated`, `userName`) lives in `App.jsx` and is passed down as props — not in context or a global store (no Redux/Zustand currently in use, despite earlier discussion of Zustand as an option).
 - `selectedChat` in HomePage gates whether ChatView shows; must be initialized to `null` (not `{}`, which is truthy and broke conditional rendering early on).
@@ -93,11 +95,12 @@ src/
 - `POST /chats` — { user2_id } (user1 from JWT) → normalizes IDs, generates UUID → SHA-256 hash, inserts into `chats`, prevents duplicates via UNIQUE constraint, returns `{ chat_id, passkey_hash }`. On UNIQUE violation (duplicate chat), catches `IntegrityError` and returns the existing chat instead of failing.
 - `GET /chats` — JWT auth → returns all chats for the authenticated user (`{ auth, chats: [...] }`). Filters out empty chats (no messages). Each chat includes `last_message`, `last_image`, and `last_timestamp` (formatted as `HH:MM`).
 - `POST /upload` — accepts multipart file via `UploadFile`, saves to `uploads/` with UUID filename, returns `{ image_url }`. Served via custom `GET /uploads/{filename}` endpoint that decrypts on the fly.
-- `POST /friends/request/{user_id}` — JWT auth → send friend request (status: pending)
+- `POST /friends/request/{user_id}` — JWT auth → send friend request (status: pending). Prevents self-requests (`from_id == to_id` returns None) and duplicate requests in either direction (`(A→B)` or `(B→A)` via SELECT check before INSERT).
 - `GET /friends/requests` — JWT auth → list incoming pending requests with sender's username
 - `POST /friends/accept/{request_id}` — JWT auth → accept friend request (status → accepted)
 - `POST /friends/reject/{request_id}` — JWT auth → reject friend request (status → rejected)
 - `GET /friends` — JWT auth → list accepted friends
+- `GET /friends/search?query=...` — JWT auth → search accepted friends by username prefix (joins friends table, excludes caller via `u.id != ?`, deduplicates with DISTINCT)
 - `DELETE /friends/{friend_id}` — JWT auth → remove friend
 - WebSocket `/ws/{chat_id}` — connects via JWT token as query param, broadcasts new messages to all connected clients in the chat room in real-time via `ConnectionManager`. Handles `message`, `image`, `typing`, `stop_typing`, `call_offer`, `call_answer`, `ice_candidate`, `call_end`, and `call_reject` event types. `image` type accepts `image_url` (from prior upload) and optional `content` caption. Typing, stop_typing, and all VoIP signaling events broadcast to others only (excludes sender via `exclude` parameter on `broadcast`). VoIP message types forward `data` payload (SDP offer/answer, ICE candidate) without inspecting it — the backend is purely a signaling relay.
 - `POST /messages` — { chat_id, content } (sender from JWT) → inserts into `messages`, returns `{ auth, message_id }`
@@ -106,7 +109,7 @@ src/
 - `chats` table: id, user1_id, user2_id, passkey_hash (SHA-256 of UUID), created_at, UNIQUE(user1_id, user2_id)
 - `messages` table: id, chat_id, sender_id, content, image (TEXT, nullable), timestamp
 - `friends` table: id, from_id, to_id, status (pending/accepted/rejected), created_at, UNIQUE(from_id, to_id)
-- `database.py` functions: `create_connection`, `create_table`, `insert_user`, `get_user_hash`, `search_users`, `create_chat`, `get_chat_passkey_hash`, `get_user_by_username`, `get_user_by_id`, `insert_message`, `get_messages_by_chat_id`, `get_last_message_by_chat_id`, `get_chats_by_user_id`, `get_user_suggestions`, `send_friend_request`, `accept_friend_request`, `reject_friend_request`, `get_pending_requests`, `get_friends`, `remove_friend`
+- `database.py` functions: `create_connection`, `create_table`, `insert_user`, `get_user_hash`, `search_users`, `create_chat`, `get_chat_passkey_hash`, `get_user_by_username`, `get_user_by_id`, `insert_message`, `get_messages_by_chat_id`, `get_last_message_by_chat_id`, `get_chats_by_user_id`, `get_user_suggestions`, `send_friend_request`, `accept_friend_request`, `reject_friend_request`, `get_pending_requests`, `get_friends`, `remove_friend`, `search_friends`
 - CORS enabled for localhost:5173, localhost:8000, and http://{P_IP}:5173 (for phone testing — set P_IP in Backend/.env)
 - `authenticate_caller(conn, authorization)` helper in `core/utils.py` — reduces 15-line repeated auth block across 5 endpoints to 3 lines each. Raises `HTTPException(401)` on failure, returns `caller_id` on success.
 - Image upload: `POST /upload` saves files to `Backend/uploads/` with UUID filenames, served via custom `GET /uploads/{filename}` endpoint that decrypts on the fly.
@@ -133,6 +136,9 @@ src/
 - ~~`main.py` was 350+ lines~~ → split into `db/`, `security/`, `core/`, `routers/` directories; `main.py` is now 28 lines
 - ~~Frontend swallowed server error messages~~ → `client.js` catch blocks check `error.response?.data` before falling back to generic message
 - ~~Backend flat file structure~~ → reorganized into `db/`, `security/`, `core/`, `routers/` directories with updated imports
+- ~~Self-request in friends (no from_id == to_id check)~~ → fixed with guard clause in `send_friend_request`
+- ~~Duplicate friend requests in swapped directions (A→B and B→A both allowed)~~ → fixed with SELECT check before INSERT in `send_friend_request`
+- ~~Sidebar timestamp mismatch with chat view (UTC vs localtime)~~ → fixed, messages table schema changed from `datetime('now')` to `datetime('now', 'localtime')` so both DB and WebSocket timestamps use local time
 
 **Not yet implemented (backend):**
 - None. All planned backend features are done.
@@ -175,8 +181,8 @@ src/
 17. ~~Timestamp visibility on own messages~~ → done, `text-white/65` on purple bubbles vs `text-gray-400` on dark
 18. Add image upload UI (file picker icon in MessageInput, upload via POST /upload, send via WebSocket)
 19. Display images in MessageBubble (render `<img>` when message has `image_url`)
-20. Build friends list UI (sidebar tabs or separate page, friend requests with accept/reject)
-21. Add `uploads/` to .gitignore (done — already added)
+20. ~~Build friends list UI (sidebar tabs or separate page, friend requests with accept/reject)~~ → done, Sidebar has Requests and Friends List sections, FriendsView for searching + sending requests, accept/reject wired with API calls. Searches friends only in NewMessage. Self-request prevented via frontend filter and backend guard. Duplicate friend requests prevented in both directions.
+21. ~~Add `uploads/` to .gitignore~~ -> done
 
 ## Environment config
 

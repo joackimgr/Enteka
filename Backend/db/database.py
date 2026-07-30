@@ -43,7 +43,7 @@ def create_table(conn):
         sender_id INTEGER NOT NULL,
         content TEXT NOT NULL,
         image TEXT,
-        timestamp TEXT DEFAULT (datetime('now')),
+        timestamp TEXT DEFAULT (datetime('now', 'localtime')),
         FOREIGN KEY (chat_id) REFERENCES chats(id),
         FOREIGN KEY (sender_id) REFERENCES users(id)
         );
@@ -259,9 +259,17 @@ def get_user_suggestions(conn, caller_id, limit = 10):
         return None
     
 def send_friend_request(conn, from_id, to_id):
+    if from_id == to_id:
+        return None
     try:
-        sql = "INSERT INTO friends (from_id, to_id, status) VALUES (?, ?, 'pending')"
         cursor = conn.cursor()
+        cursor.execute(
+            "SELECT id FROM friends WHERE (from_id = ? AND to_id = ?) OR (from_id = ? AND to_id = ?)",
+            (from_id, to_id, to_id, from_id)
+        )
+        if cursor.fetchone():
+            return None
+        sql = "INSERT INTO friends (from_id, to_id, status) VALUES (?, ?, 'pending')"
         cursor.execute(sql, (from_id, to_id))
         conn.commit()
         return {"id": cursor.lastrowid}
@@ -345,7 +353,25 @@ def remove_friend(conn, user_id, friend_id):
     except sqlite3.Error as e:
         logger.error(e)
         return None
-
+    
+def search_friends(conn, user_id, query):
+    try:
+        sql = """SELECT DISTINCT u.id, u.username
+        FROM users u
+        JOIN friends f ON (u.id = f.from_id OR u.id = f.to_id)
+        WHERE (f.from_id = ? OR f.to_id = ?)
+        AND f.status = 'accepted'
+        AND u.id != ?
+        AND u.username LIKE ?
+        """
+        cursor = conn.cursor()
+        cursor.execute(sql, (user_id, user_id, user_id, f"{query}%"))
+        result = cursor.fetchall()
+        return [{"id": row[0], "username": row[1]} for row in result]
+    except sqlite3.Error as e:
+        print(e)
+        return None
+        
 if __name__ == "__main__":
     database = "Enteka.db"
     conn = create_connection(database)

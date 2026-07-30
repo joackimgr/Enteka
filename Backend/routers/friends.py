@@ -61,3 +61,13 @@ async def remove_friends(friend_id: int, authorization: str = Header(None)):
     if result:
         return {"auth": True, "message": "Friend removed."}
     return JSONResponse(status_code=404, content={"auth": False, "message": "Friend not found."})
+
+@router.get("/friends/search")
+async def search_friendslist(query: str = "", authorization: str = Header(None)):
+    if state.conn is None:
+        raise HTTPException(status_code=503, detail="Database connection error.")
+    caller_id = authenticate_caller(state.conn, authorization)
+    if not query:
+        return {"auth": True, "friends": []}
+    friends = search_friends(state.conn, caller_id, query)
+    return {"auth": True, "friends": friends}
