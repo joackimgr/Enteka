@@ -138,7 +138,7 @@ src/
 - ~~Backend flat file structure~~ → reorganized into `db/`, `security/`, `core/`, `routers/` directories with updated imports
 - ~~Self-request in friends (no from_id == to_id check)~~ → fixed with guard clause in `send_friend_request`
 - ~~Duplicate friend requests in swapped directions (A→B and B→A both allowed)~~ → fixed with SELECT check before INSERT in `send_friend_request`
-- ~~Sidebar timestamp mismatch with chat view (UTC vs localtime)~~ → fixed, `insert_message` now explicitly passes `datetime.now()` (local time) instead of relying on SQLite `datetime('now')` which is UTC
+- ~~Sidebar timestamp mismatch with chat view (UTC vs localtime)~~ → fixed, messages table schema changed from `datetime('now')` to `datetime('now', 'localtime')` so both DB and WebSocket timestamps use local time
 
 **Not yet implemented (backend):**
 - None. All planned backend features are done.
