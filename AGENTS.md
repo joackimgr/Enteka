@@ -90,26 +90,26 @@ src/
 - `POST /login` — { username, password } → looks up hash, verifies with bcrypt, returns JWT token → { auth, token, username }
 - `POST /verify` — { token } → verifies JWT, returns username → { auth, username }
 - `GET /` — health check
-- `GET /users/search?query=username` — searches users by username prefix via `search_users(conn, query)` in `database.py`, returns `[{ id, username }]` or `null`
+- `GET /users/search?query=username` — JWT auth → searches users by username prefix via `search_users(conn, query)` in `database.py`, returns `[{ id, username }]` or `null`
 - `GET /users/suggestions` — JWT auth → returns random user suggestions (excluding caller) for NewMessage default list
 - `POST /chats` — { user2_id } (user1 from JWT) → normalizes IDs, generates UUID → SHA-256 hash, inserts into `chats`, prevents duplicates via UNIQUE constraint, returns `{ chat_id, passkey_hash }`. On UNIQUE violation (duplicate chat), catches `IntegrityError` and returns the existing chat instead of failing.
 - `GET /chats` — JWT auth → returns all chats for the authenticated user (`{ auth, chats: [...] }`). Filters out empty chats (no messages). Each chat includes `last_message`, `last_image`, and `last_timestamp` (formatted as `HH:MM`).
 - `POST /upload` — accepts multipart file via `UploadFile`, saves to `uploads/` with UUID filename, returns `{ image_url }`. Served via custom `GET /uploads/{filename}` endpoint that decrypts on the fly.
 - `POST /friends/request/{user_id}` — JWT auth → send friend request (status: pending). Prevents self-requests (`from_id == to_id` returns None) and duplicate requests in either direction (`(A→B)` or `(B→A)` via SELECT check before INSERT).
 - `GET /friends/requests` — JWT auth → list incoming pending requests with sender's username
-- `POST /friends/accept/{request_id}` — JWT auth → accept friend request (status → accepted)
-- `POST /friends/reject/{request_id}` — JWT auth → reject friend request (status → rejected)
+- `POST /friends/accept/{request_id}` — JWT auth → accept friend request (status → accepted). Only the recipient (`to_id`) can accept; others get 404.
+- `POST /friends/reject/{request_id}` — JWT auth → reject friend request (status → rejected). Only the recipient (`to_id`) can reject; others get 404.
 - `GET /friends` — JWT auth → list accepted friends
 - `GET /friends/search?query=...` — JWT auth → search accepted friends by username prefix (joins friends table, excludes caller via `u.id != ?`, deduplicates with DISTINCT)
 - `DELETE /friends/{friend_id}` — JWT auth → remove friend
-- WebSocket `/ws/{chat_id}` — connects via JWT token as query param, broadcasts new messages to all connected clients in the chat room in real-time via `ConnectionManager`. Handles `message`, `image`, `typing`, `stop_typing`, `call_offer`, `call_answer`, `ice_candidate`, `call_end`, and `call_reject` event types. `image` type accepts `image_url` (from prior upload) and optional `content` caption. Typing, stop_typing, and all VoIP signaling events broadcast to others only (excludes sender via `exclude` parameter on `broadcast`). VoIP message types forward `data` payload (SDP offer/answer, ICE candidate) without inspecting it — the backend is purely a signaling relay.
-- `POST /messages` — { chat_id, content } (sender from JWT) → inserts into `messages`, returns `{ auth, message_id }`
-- `GET /messages/{chat_id}` — JWT auth → returns all messages for a chat ordered by timestamp, each message has `is_mine` (boolean) based on authenticated user. Messages include optional `image` field. Timestamps formatted as `HH:MM` on the backend.
+- WebSocket `/ws/{chat_id}` — connects via JWT token as query param, verifies the caller is a participant in the chat (closes with code 1008 otherwise), broadcasts new messages to all connected clients in the chat room in real-time via `ConnectionManager`. Handles `message`, `image`, `typing`, `stop_typing`, `call_offer`, `call_answer`, `ice_candidate`, `call_end`, and `call_reject` event types. `image` type accepts `image_url` (from prior upload) and optional `content` caption. Typing, stop_typing, and all VoIP signaling events broadcast to others only (excludes sender via `exclude` parameter on `broadcast`). VoIP message types forward `data` payload (SDP offer/answer, ICE candidate) without inspecting it — the backend is purely a signaling relay.
+- `POST /messages` — { chat_id, content } (sender from JWT) → verifies sender is a chat participant (`403` otherwise), inserts into `messages`, returns `{ auth, message_id }`
+- `GET /messages/{chat_id}` — JWT auth → verifies caller is a chat participant (`403` otherwise), returns all messages for a chat ordered by timestamp, each message has `is_mine` (boolean) based on authenticated user. Messages include optional `image` field. Timestamps formatted as `HH:MM` on the backend.
 - `users` table: id, username (UNIQUE), email (UNIQUE), password (hashed)
 - `chats` table: id, user1_id, user2_id, passkey_hash (SHA-256 of UUID), created_at, UNIQUE(user1_id, user2_id)
 - `messages` table: id, chat_id, sender_id, content, image (TEXT, nullable), timestamp
 - `friends` table: id, from_id, to_id, status (pending/accepted/rejected), created_at, UNIQUE(from_id, to_id)
-- `database.py` functions: `create_connection`, `create_table`, `insert_user`, `get_user_hash`, `search_users`, `create_chat`, `get_chat_passkey_hash`, `get_user_by_username`, `get_user_by_id`, `insert_message`, `get_messages_by_chat_id`, `get_last_message_by_chat_id`, `get_chats_by_user_id`, `get_user_suggestions`, `send_friend_request`, `accept_friend_request`, `reject_friend_request`, `get_pending_requests`, `get_friends`, `remove_friend`, `search_friends`
+- `database.py` functions: `create_connection`, `create_table`, `insert_user`, `get_user_hash`, `search_users`, `create_chat`, `get_chat_passkey_hash`, `get_user_by_username`, `get_user_by_id`, `insert_message`, `get_messages_by_chat_id`, `get_last_message_by_chat_id`, `get_chats_by_user_id`, `get_user_suggestions`, `send_friend_request`, `accept_friend_request`, `reject_friend_request`, `get_pending_requests`, `get_friends`, `remove_friend`, `search_friends`, `chat_belongs_to_user`
 - CORS enabled for localhost:5173, localhost:8000, and http://{P_IP}:5173 (for phone testing — set P_IP in Backend/.env)
 - `authenticate_caller(conn, authorization)` helper in `core/utils.py` — reduces 15-line repeated auth block across 5 endpoints to 3 lines each. Raises `HTTPException(401)` on failure, returns `caller_id` on success.
 - Image upload: `POST /upload` saves files to `Backend/uploads/` with UUID filenames, served via custom `GET /uploads/{filename}` endpoint that decrypts on the fly.
@@ -139,6 +139,10 @@ src/
 - ~~Self-request in friends (no from_id == to_id check)~~ → fixed with guard clause in `send_friend_request`
 - ~~Duplicate friend requests in swapped directions (A→B and B→A both allowed)~~ → fixed with SELECT check before INSERT in `send_friend_request`
 - ~~Sidebar timestamp mismatch with chat view (UTC vs localtime)~~ → fixed, messages table schema changed from `datetime('now')` to `datetime('now', 'localtime')` so both DB and WebSocket timestamps use local time
+- ~~Any logged-in user could read/post to any chat by guessing `chat_id`~~ → fixed with `chat_belongs_to_user()` membership check on `GET`/`POST /messages` (403) and WebSocket `/ws/{chat_id}` (close 1008)
+- ~~`GET /users/search` was unauthenticated (username enumeration)~~ → fixed, now requires JWT via `authenticate_caller`
+- ~~Anyone could accept/reject any pending friend request by `request_id`~~ → fixed, accept/reject now verify `to_id == caller_id`, others get 404
+- ~~`client.js` template literals mangled to single quotes (all API calls + WS broken)~~ → fixed, restored backticks
 
 **Not yet implemented (backend):**
 - None. All planned backend features are done.
