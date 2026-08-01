@@ -8,9 +8,10 @@ from core import state
 router = APIRouter(tags=["chats"])
 
 @router.get("/users/search")
-async def search(query: str = ""):
+async def search(authorization: str = Header(None), query: str = ""):
     if state.conn is None:
         raise HTTPException(status_code=503, detail="Database connection error.")
+    authenticate_caller(state.conn, authorization)
     result = search_users(state.conn, query)
     return result if result is not None else []
 
@@ -65,18 +66,25 @@ async def messages_post(message_data: CreateMessage, authorization: str = Header
     if state.conn is None:
         raise HTTPException(status_code=503, detail="Database connection error.")
     sender_id = authenticate_caller(state.conn, authorization)
-    result = insert_message(state.conn, message_data.chat_id, sender_id, message_data.content)
-    if result is None:
-        return JSONResponse(status_code=500, content={"auth": False, "message": "Failed to send message."})
-    return {"auth": True, "message_id": result}
+    if chat_belongs_to_user(state.conn, message_data.chat_id, sender_id):
+        result = insert_message(state.conn, message_data.chat_id, sender_id, message_data.content)
+        if result is None:
+            return JSONResponse(status_code=500, content={"auth": False, "message": "Failed to send message."})
+        return {"auth": True, "message_id": result}
+    else:
+        return JSONResponse(status_code=403, content={"auth": False, "message": "Not a participant in this chat."})
+
 
 @router.get("/messages/{chat_id}")
 async def messages_get(chat_id: int, authorization: str = Header(None)):
     if state.conn is None:
         raise HTTPException(status_code=503, detail="Database connection error.")
     caller_id = authenticate_caller(state.conn, authorization)
-    chat_list = get_messages_by_chat_id(state.conn, chat_id)
-    if chat_list is None:
-        return {"auth": True, "messages": []}
-    messages = [{"id": msg[0], "sender_id": msg[1], "content": msg[2], "image": msg[3], "timestamp": msg[4].split()[1][:5], "is_mine": msg[1] == caller_id} for msg in chat_list]
-    return {"auth": True, "messages": messages}
+    if chat_belongs_to_user(state.conn, chat_id, caller_id):
+        chat_list = get_messages_by_chat_id(state.conn, chat_id)
+        if chat_list is None:
+            return {"auth": True, "messages": []}
+        messages = [{"id": msg[0], "sender_id": msg[1], "content": msg[2], "image": msg[3], "timestamp": msg[4].split()[1][:5], "is_mine": msg[1] == caller_id} for msg in chat_list]
+        return {"auth": True, "messages": messages}
+    else:
+        return JSONResponse(status_code=403, content={"auth": False, "message": "Not a participant in this chat."})

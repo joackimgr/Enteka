@@ -49,7 +49,10 @@ export const verifyToken = async (token) => {
 
 export const search = async (query) => {
     try {
-        const response = await axios.get(`${BASE_URL}/users/search?query=${query}`)
+        const token = localStorage.getItem("token")
+        const response = await axios.get(`${BASE_URL}/users/search?query=${query}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+        )
         return response.data
     } catch(error) {
         console.error("Error searching user", error)

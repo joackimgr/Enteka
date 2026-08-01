@@ -1,5 +1,5 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
-from db.database import get_user_by_username, insert_message
+from db.database import get_user_by_username, insert_message, chat_belongs_to_user
 from security.auth import verify_token
 from datetime import datetime
 from core import state
@@ -18,8 +18,11 @@ async def webSocket_endpoint(websocket: WebSocket, chat_id: int, token: str = Qu
         if caller_id is None:
             await websocket.close(code=1008)
             return
-
-        await state.manager.connect(websocket, chat_id)
+        if chat_belongs_to_user(state.conn, chat_id, caller_id):
+            await state.manager.connect(websocket, chat_id)
+        else:
+            await websocket.close(code=1008)
+            return
         try:
             while True:
                 data = await websocket.receive_json()

@@ -279,22 +279,22 @@ def send_friend_request(conn, from_id, to_id):
         logger.error(e)
         return None
 
-def accept_friend_request(conn, request_id):
+def accept_friend_request(conn, request_id, user_id):
     try:
-        sql = "UPDATE friends SET status = 'accepted' WHERE id = ? AND status = 'pending'"
+        sql = "UPDATE friends SET status = 'accepted' WHERE id = ? AND status = 'pending' AND to_id = ?"
         cursor = conn.cursor()
-        cursor.execute(sql, (request_id,))
+        cursor.execute(sql, (request_id, user_id))
         conn.commit()
         return cursor.rowcount > 0
     except sqlite3.Error as e:
         logger.error(e)
         return None
 
-def reject_friend_request(conn, request_id):
+def reject_friend_request(conn, request_id, user_id):
     try:
-        sql = "UPDATE friends SET status = 'rejected' WHERE id = ? AND status = 'pending'"
+        sql = "UPDATE friends SET status = 'rejected' WHERE id = ? AND status = 'pending' AND to_id = ?"
         cursor = conn.cursor()
-        cursor.execute(sql, (request_id,))
+        cursor.execute(sql, (request_id, user_id))
         conn.commit()
         return cursor.rowcount > 0
     except sqlite3.Error as e:
@@ -369,9 +369,20 @@ def search_friends(conn, user_id, query):
         result = cursor.fetchall()
         return [{"id": row[0], "username": row[1]} for row in result]
     except sqlite3.Error as e:
-        print(e)
+        logger.error(e)
         return None
-        
+
+def chat_belongs_to_user(conn, chat_id, user_id):
+    try:
+        sql = "SELECT id FROM chats WHERE id = ? AND (user1_id = ? OR user2_id = ?)"
+        cursor = conn.cursor()
+        cursor.execute(sql, (chat_id, user_id, user_id))
+        result = cursor.fetchall()
+        return bool(result)
+    except sqlite3.Error as e:
+        logger.error(e)
+        return None
+    
 if __name__ == "__main__":
     database = "Enteka.db"
     conn = create_connection(database)

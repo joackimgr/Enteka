@@ -28,8 +28,8 @@ async def get_request_friends(authorization: str = Header(None)):
 async def accept_friends(request_id: int, authorization: str = Header(None)):
     if state.conn is None:
         raise HTTPException(status_code=503, detail="Database connection error.")
-    authenticate_caller(state.conn, authorization)
-    result = accept_friend_request(state.conn, request_id)
+    caller_id = authenticate_caller(state.conn, authorization)
+    result = accept_friend_request(state.conn, request_id, caller_id)
     if result:
         return {"auth": True, "message": "Friend request accepted."}
     return JSONResponse(status_code=404, content={"auth": False, "message": "Friend request not found."})
@@ -38,8 +38,8 @@ async def accept_friends(request_id: int, authorization: str = Header(None)):
 async def reject_friends(request_id: int, authorization: str = Header(None)):
     if state.conn is None:
         raise HTTPException(status_code=503, detail="Database connection error.")
-    authenticate_caller(state.conn, authorization)
-    result = reject_friend_request(state.conn, request_id)
+    caller_id = authenticate_caller(state.conn, authorization)
+    result = reject_friend_request(state.conn, request_id, caller_id)
     if result:
         return {"auth": True, "message": "Friend request rejected."}
     return JSONResponse(status_code=404, content={"auth": False, "message": "Friend request not found."})
