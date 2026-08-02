@@ -13,7 +13,9 @@ logging.basicConfig(
 
 for var, hint in {"SECRET_KEY": "Set a random string in Backend/.env",
                    "ALGORITHM": "Set to HS256 in Backend/.env",
-                   "ACCESS_TOKEN_EXPIRE_MINUTES": "Set to a number (e.g. 30) in Backend/.env"}.items():
+                   "ACCESS_TOKEN_EXPIRE_MINUTES": "Set to a number (e.g. 30) in Backend/.env",
+                   "MAX_UPLOAD_SIZE_MB": "Set to a number (e.g. 5) in Backend/.env"}.items():
+
     value = os.getenv(var)
     if not value:
         logger.critical("%s is not set. %s", var, hint)

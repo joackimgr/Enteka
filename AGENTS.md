@@ -94,7 +94,7 @@ src/
 - `GET /users/suggestions` — JWT auth → returns random user suggestions (excluding caller) for NewMessage default list
 - `POST /chats` — { user2_id } (user1 from JWT) → normalizes IDs, generates UUID → SHA-256 hash, inserts into `chats`, prevents duplicates via UNIQUE constraint, returns `{ chat_id, passkey_hash }`. On UNIQUE violation (duplicate chat), catches `IntegrityError` and returns the existing chat instead of failing.
 - `GET /chats` — JWT auth → returns all chats for the authenticated user (`{ auth, chats: [...] }`). Filters out empty chats (no messages). Each chat includes `last_message`, `last_image`, and `last_timestamp` (formatted as `HH:MM`).
-- `POST /upload` — accepts multipart file via `UploadFile`, saves to `uploads/` with UUID filename, returns `{ image_url }`. Served via custom `GET /uploads/{filename}` endpoint that decrypts on the fly.
+- `POST /upload` — JWT auth → accepts multipart file via `UploadFile`, validates extension allowlist (jpg/jpeg/png/gif/webp), enforces 5 MB size limit via `MAX_UPLOAD_SIZE_MB` (chunked read), verifies image magic bytes (JPEG/PNG/GIF/WEBP), rejects empty files, saves encrypted to `uploads/` with UUID filename, returns `{ image_url }`. Served via custom `GET /uploads/{filename}` endpoint that requires a `token` query param (valid JWT) and decrypts on the fly.
 - `POST /friends/request/{user_id}` — JWT auth → send friend request (status: pending). Prevents self-requests (`from_id == to_id` returns None) and duplicate requests in either direction (`(A→B)` or `(B→A)` via SELECT check before INSERT).
 - `GET /friends/requests` — JWT auth → list incoming pending requests with sender's username
 - `POST /friends/accept/{request_id}` — JWT auth → accept friend request (status → accepted). Only the recipient (`to_id`) can accept; others get 404.
@@ -143,6 +143,9 @@ src/
 - ~~`GET /users/search` was unauthenticated (username enumeration)~~ → fixed, now requires JWT via `authenticate_caller`
 - ~~Anyone could accept/reject any pending friend request by `request_id`~~ → fixed, accept/reject now verify `to_id == caller_id`, others get 404
 - ~~`client.js` template literals mangled to single quotes (all API calls + WS broken)~~ → fixed, restored backticks
+- ~~`POST /upload` was unauthenticated (anyone could fill the disk) and accepted any file type/size~~ → fixed, requires JWT, extension allowlist (jpg/jpeg/png/gif/webp), 5 MB chunked limit via `MAX_UPLOAD_SIZE_MB`, magic-byte check, empty-file reject
+- ~~`GET /uploads/{filename}` was unauthenticated~~ → fixed, requires `token` query param (valid JWT), only serves allowlisted image extensions
+- ~~`MAX_uPLOAD_SIZE_MB` typo in setup.py crashed backend on startup~~ → fixed to `MAX_UPLOAD_SIZE_MB`
 
 **Not yet implemented (backend):**
 - None. All planned backend features are done.
@@ -190,7 +193,7 @@ src/
 
 ## Environment config
 
-- `Backend/.env` — backend secrets (SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, P_IP, ENCRYPTION_KEY). Ignored by git; copy from `.env.example`.
+- `Backend/.env` — backend secrets (SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, P_IP, ENCRYPTION_KEY, MAX_UPLOAD_SIZE_MB). Ignored by git; copy from `.env.example`.
 - `Backend/setup.py` — loads .env, configures logging, validates required vars on startup.
 - Root `.env` — frontend Vite vars (VITE_PERSONAL_IP). Ignored by git; copy from `.env.example`.
 - Set `VITE_PERSONAL_IP` and `P_IP` to your laptop's local network IP (e.g. `192.168.1.112`) to test the app from your phone on the same WiFi.
