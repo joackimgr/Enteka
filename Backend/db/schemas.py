@@ -18,3 +18,16 @@ class CreateChat(BaseModel):
 class CreateMessage(BaseModel):
     chat_id: int
     content: str
+
+class UpdateUsername(BaseModel):
+    username: str
+
+class UpdateEmail(BaseModel):
+    email: EmailStr
+
+class UpdatePassword(BaseModel):
+    current_password: str
+    new_password: str
+
+class UpdateProfilePicture(BaseModel):
+    image_url: str

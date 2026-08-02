@@ -105,11 +105,16 @@ src/
 - WebSocket `/ws/{chat_id}` — connects via JWT token as query param, verifies the caller is a participant in the chat (closes with code 1008 otherwise), broadcasts new messages to all connected clients in the chat room in real-time via `ConnectionManager`. Handles `message`, `image`, `typing`, `stop_typing`, `call_offer`, `call_answer`, `ice_candidate`, `call_end`, and `call_reject` event types. `image` type accepts `image_url` (from prior upload) and optional `content` caption. Typing, stop_typing, and all VoIP signaling events broadcast to others only (excludes sender via `exclude` parameter on `broadcast`). VoIP message types forward `data` payload (SDP offer/answer, ICE candidate) without inspecting it — the backend is purely a signaling relay.
 - `POST /messages` — { chat_id, content } (sender from JWT) → verifies sender is a chat participant (`403` otherwise), inserts into `messages`, returns `{ auth, message_id }`
 - `GET /messages/{chat_id}` — JWT auth → verifies caller is a chat participant (`403` otherwise), returns all messages for a chat ordered by timestamp, each message has `is_mine` (boolean) based on authenticated user. Messages include optional `image` field. Timestamps formatted as `HH:MM` on the backend.
-- `users` table: id, username (UNIQUE), email (UNIQUE), password (hashed)
+- `GET /users/me` — JWT auth → returns current user's `{ id, username, email, profile_picture }` (settings router)
+- `PUT /users/me/username` — JWT auth → updates username, `409` on UNIQUE collision, **re-issues a fresh JWT** (token `sub` = username, so a signed token can't survive a username change), returns `{ auth, token, username }`
+- `PUT /users/me/email` — JWT auth → updates email, `409` on UNIQUE collision (keeps existing token)
+- `PUT /users/me/password` — JWT auth → requires `{ current_password, new_password }`, verifies current via bcrypt (`401` if wrong), re-hashes + stores new
+- `PUT /users/me/profile-picture` — JWT auth → accepts `{ image_url }` (must start with `/uploads/`), stores it on the user (keeps token)
+- `users` table: id, username (UNIQUE), email (UNIQUE), password (hashed), profile_picture (TEXT, nullable)
 - `chats` table: id, user1_id, user2_id, passkey_hash (SHA-256 of UUID), created_at, UNIQUE(user1_id, user2_id)
 - `messages` table: id, chat_id, sender_id, content, image (TEXT, nullable), timestamp
 - `friends` table: id, from_id, to_id, status (pending/accepted/rejected), created_at, UNIQUE(from_id, to_id)
-- `database.py` functions: `create_connection`, `create_table`, `insert_user`, `get_user_hash`, `search_users`, `create_chat`, `get_chat_passkey_hash`, `get_user_by_username`, `get_user_by_id`, `insert_message`, `get_messages_by_chat_id`, `get_last_message_by_chat_id`, `get_chats_by_user_id`, `get_user_suggestions`, `send_friend_request`, `accept_friend_request`, `reject_friend_request`, `get_pending_requests`, `get_friends`, `remove_friend`, `search_friends`, `chat_belongs_to_user`
+- `database.py` functions: `create_connection`, `create_table`, `insert_user`, `get_user_hash`, `get_user_hash_by_id`, `get_user_profile`, `update_username`, `update_email`, `update_password`, `update_profile_picture`, `search_users`, `create_chat`, `get_chat_passkey_hash`, `get_user_by_username`, `get_user_by_id`, `insert_message`, `get_messages_by_chat_id`, `get_last_message_by_chat_id`, `get_chats_by_user_id`, `get_user_suggestions`, `send_friend_request`, `accept_friend_request`, `reject_friend_request`, `get_pending_requests`, `get_friends`, `remove_friend`, `search_friends`, `chat_belongs_to_user`
 - CORS enabled for localhost:5173, localhost:8000, and http://{P_IP}:5173 (for phone testing — set P_IP in Backend/.env)
 - `authenticate_caller(conn, authorization)` helper in `core/utils.py` — reduces 15-line repeated auth block across 5 endpoints to 3 lines each. Raises `HTTPException(401)` on failure, returns `caller_id` on success.
 - Image upload: `POST /upload` saves files to `Backend/uploads/` with UUID filenames, served via custom `GET /uploads/{filename}` endpoint that decrypts on the fly.
@@ -150,6 +155,7 @@ src/
 - ~~`insert_user` never returned the new id / swallowed errors~~ → returns `cursor.lastrowid`; returns `None` on `sqlite3.Error`; `POST /signup` checks the return and returns `409` on the signup race (pre-check via `get_user_hash` + post-INSERT confirmation)
 - ~~`chats.created_at` / `friends.created_at` stored UTC while `messages.timestamp` was localtime~~ → both now `datetime('now', 'localtime')`
 - ~~`POST /chats` with a nonexistent `user2_id` returned 200~~ → `get_user_by_id` guard, now returns `JSONResponse(status_code=404)`
+- ~~Profile picture column missing / settings endpoints didn't exist~~ → Tier 4 (`feature/settings-endpoints`): added `profile_picture` column to `users` (with `ALTER TABLE` migration guarded by `PRAGMA table_info` for existing DBs) and new `routers/settings.py` with `GET /users/me`, `PUT /users/me/username` (re-issues JWT), `PUT /users/me/email`, `PUT /users/me/password` (verifies current via bcrypt), `PUT /users/me/profile-picture` (validates `/uploads/` path). DB helpers `get_user_profile`, `update_username`, `update_email`, `update_password`, `update_profile_picture`, `get_user_hash_by_id`; `update_username`/`update_email` catch `sqlite3.IntegrityError` → `None` so routers return 409. Frontend settings UI NOT built — backend only.
 
 **Not yet implemented (backend):**
 - None. All planned backend features are done. (Concurrency rewrite — aiosqlite/threading.Lock — deliberately skipped; WAL + busy_timeout suffice for SQLite dev, DB migrates later.)
@@ -194,6 +200,8 @@ src/
 19. Display images in MessageBubble (render `<img>` when message has `image_url`)
 20. ~~Build friends list UI (sidebar tabs or separate page, friend requests with accept/reject)~~ → done, Sidebar has Requests and Friends List sections, FriendsView for searching + sending requests, accept/reject wired with API calls. Searches friends only in NewMessage. Self-request prevented via frontend filter and backend guard. Duplicate friend requests prevented in both directions.
 21. ~~Add `uploads/` to .gitignore~~ -> done
+22. Wire SettingsPanel to real settings endpoints (backend done in Tier 4: `GET /users/me`, `PUT /users/me/username|email|password|profile-picture`). Username change must save the returned new token to localStorage and update App's `userName` state.
+23. Display profile pictures (append `?token=` when rendering `/uploads/...` images): own avatar in NavBar, chat user in ChatHeader, avatars in Sidebar chat cards + friends list.
 
 ## Environment config
 

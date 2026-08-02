@@ -26,7 +26,8 @@ def create_table(conn):
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT NOT NULL UNIQUE,
             email TEXT NOT NULL UNIQUE,
-            password TEXT NOT NULL
+            password TEXT NOT NULL,
+            profile_picture TEXT
         );
 
         CREATE TABLE IF NOT EXISTS chats (
@@ -64,6 +65,11 @@ def create_table(conn):
         """
         cursor = conn.cursor()
         cursor.executescript(sql_create_tables)
+        columns = [row[1] for row in cursor.execute("PRAGMA table_info(users)").fetchall()]
+        if "profile_picture" not in columns:
+            cursor.execute("ALTER TABLE users ADD COLUMN profile_picture TEXT")
+            conn.commit()
+            logger.info("Added 'profile_picture' column to users table.")
         logger.info("Tables created successfully.")
     except sqlite3.Error as e:
         logger.error("Failed to create tables.")
@@ -94,6 +100,20 @@ def get_user_hash(conn, username):
     
     except sqlite3.Error as e:
         logger.error("Failed to get user hash.")
+        logger.error(e)
+        return None
+
+def get_user_hash_by_id(conn, user_id):
+    try:
+        sql = "SELECT password FROM users WHERE id = ?"
+        cursor = conn.cursor()
+        cursor.execute(sql, (user_id,))
+        result = cursor.fetchone()
+        if result:
+            return result[0]
+        return None
+    except sqlite3.Error as e:
+        logger.error("Failed to get user hash by id.")
         logger.error(e)
         return None
     
@@ -384,6 +404,69 @@ def chat_belongs_to_user(conn, chat_id, user_id):
         cursor.execute(sql, (chat_id, user_id, user_id))
         result = cursor.fetchall()
         return bool(result)
+    except sqlite3.Error as e:
+        logger.error(e)
+        return None
+
+def get_user_profile(conn, user_id):
+    try:
+        sql = "SELECT id, username, email, profile_picture FROM users WHERE id = ?"
+        cursor = conn.cursor()
+        cursor.execute(sql, (user_id,))
+        result = cursor.fetchone()
+        if result:
+            return {"id": result[0], "username": result[1], "email": result[2], "profile_picture": result[3]}
+        return None
+    except sqlite3.Error as e:
+        logger.error(e)
+        return None
+
+def update_username(conn, user_id, new_username):
+    try:
+        sql = "UPDATE users SET username = ? WHERE id = ?"
+        cursor = conn.cursor()
+        cursor.execute(sql, (new_username, user_id))
+        conn.commit()
+        return new_username
+    except sqlite3.IntegrityError:
+        logger.error("Username '%s' is already taken.", new_username)
+        return None
+    except sqlite3.Error as e:
+        logger.error(e)
+        return None
+
+def update_email(conn, user_id, new_email):
+    try:
+        sql = "UPDATE users SET email = ? WHERE id = ?"
+        cursor = conn.cursor()
+        cursor.execute(sql, (new_email, user_id))
+        conn.commit()
+        return new_email
+    except sqlite3.IntegrityError:
+        logger.error("Email '%s' is already taken.", new_email)
+        return None
+    except sqlite3.Error as e:
+        logger.error(e)
+        return None
+
+def update_password(conn, user_id, new_hash):
+    try:
+        sql = "UPDATE users SET password = ? WHERE id = ?"
+        cursor = conn.cursor()
+        cursor.execute(sql, (new_hash, user_id))
+        conn.commit()
+        return True
+    except sqlite3.Error as e:
+        logger.error(e)
+        return None
+
+def update_profile_picture(conn, user_id, image_url):
+    try:
+        sql = "UPDATE users SET profile_picture = ? WHERE id = ?"
+        cursor = conn.cursor()
+        cursor.execute(sql, (image_url, user_id))
+        conn.commit()
+        return image_url
     except sqlite3.Error as e:
         logger.error(e)
         return None
