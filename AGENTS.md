@@ -223,4 +223,16 @@ src/
 - Feature branches: `feature/short-description` (created with `git checkout -b feature/...`)
 - MIT license, repo is public and intentionally open source
 
+## Leak check — REQUIRED before every push
+
+Before any `git commit` / `git push`, verify no personal/sensitive data is exposed. Run these checks and confirm clean:
+
+1. **No real secrets in tracked files** — `grep -rnE "ENCRYPTION_KEY\s*=\s*[^y]|SECRET_KEY\s*=\s*[^y]" --include="*.py" --include="*.txt" --include="*.md" --include="*.ini" . | grep -v .venv | grep -v node_modules | grep -v 'your-'` → expect no output.
+2. **No real `.env` committed** — `git ls-files | grep -E "\.env$|\.env\."` → must return only `.env.example` files (placeholders).
+3. **Real values only in ignored files** — real `ENCRYPTION_KEY` / `SECRET_KEY` / `P_IP` may exist only in `Backend/.env` and root `.env` (both gitignored), **never** in tracked files or git history.
+4. **No personal data in file content** — no personal emails, phone numbers, or hardcoded real IPs (e.g. `192.168.x.x`) in any tracked file. Git author metadata (name/email) is not a leak concern; only file *content* matters.
+5. **Clean working tree before push** — confirm only intended files are staged (`git status --short`), no stray `Enteka.db*`, `uploads/*`, or `__pycache__` artifacts.
+6. **If a leak is found** — do NOT push; scrub it, add to `.gitignore` if needed, and re-run the checks.
+
+
 
