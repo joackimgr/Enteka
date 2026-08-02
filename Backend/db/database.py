@@ -9,7 +9,10 @@ logger = logging.getLogger("enteka.database")
 def create_connection(db_file):
     conn = None
     try:
-        conn = sqlite3.connect(db_file)
+        conn = sqlite3.connect(db_file, check_same_thread=False)
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA busy_timeout=5000")
+        conn.execute("PRAGMA foreign_keys=ON")
         logger.info("Connected to database: %s", db_file)
     except sqlite3.Error as e:
         logger.error(e)
@@ -31,7 +34,7 @@ def create_table(conn):
         user1_id INTEGER NOT NULL,
         user2_id INTEGER NOT NULL,
         passkey_hash TEXT NOT NULL,
-        created_at TEXT DEFAULT (datetime('now')),
+        created_at TEXT DEFAULT (datetime('now', 'localtime')),
         FOREIGN KEY (user1_id) REFERENCES users(id),
         FOREIGN KEY (user2_id) REFERENCES users(id),
         UNIQUE(user1_id, user2_id)
@@ -53,7 +56,7 @@ def create_table(conn):
         from_id INTEGER NOT NULL,
         to_id INTEGER NOT NULL,
         status TEXT DEFAULT 'pending',
-        created_at TEXT DEFAULT (datetime('now')),
+        created_at TEXT DEFAULT (datetime('now', 'localtime')),
         FOREIGN KEY (from_id) REFERENCES users(id),
         FOREIGN KEY (to_id) REFERENCES users(id),
         UNIQUE(from_id, to_id)
@@ -73,9 +76,11 @@ def insert_user(conn, username, email, password):
         cursor.execute(sql, (username, email, password))
         conn.commit()
         logger.info("User '%s' inserted successfully.", username)
+        return cursor.lastrowid
     except sqlite3.Error as e:
         logger.error("Failed to insert user.")
         logger.error(e)
+        return None
 
 def get_user_hash(conn, username):
     try:

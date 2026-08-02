@@ -18,7 +18,9 @@ async def signup(user_data: UserSignUp):
     if hashed_password is not None:
         return JSONResponse(status_code=409, content={"auth": False, "message": "User already exists."})
     hashing_password = hashing(user_data.password)
-    insert_user(state.conn, user_data.username, user_data.email, hashing_password)
+    user_id = insert_user(state.conn, user_data.username, user_data.email, hashing_password)
+    if user_id is None:
+        return JSONResponse(status_code=409, content={"auth": False, "message": "User already exists."})
     token = create_access_token(user_data.username)
     logger.info("User '%s' signed up.", user_data.username)
     return {"auth": True, "token": token, "message": "User created successfully!"}

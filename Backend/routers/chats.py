@@ -28,9 +28,12 @@ async def chats_post(chat_data: CreateChat, authorization: str = Header(None)):
     if state.conn is None:
         raise HTTPException(status_code=503, detail="Database connection error.")
     caller_id = authenticate_caller(state.conn, authorization)
-    result = create_chat(state.conn, caller_id, chat_data.user2_id)
-    if result is None:
-        return JSONResponse(status_code=500, content={"auth": False, "message": "Failed to create chat."})
+    if get_user_by_id(state.conn, chat_data.user2_id):
+        result = create_chat(state.conn, caller_id, chat_data.user2_id)
+        if result is None:
+            return JSONResponse(status_code=500, content={"auth": False, "message": "Failed to create chat."})
+    else:
+        return JSONResponse(status_code=404, content={"auth": False, "message": "User not found."})
     return {"auth": True, "chat": result}
 
 @router.get("/chats")

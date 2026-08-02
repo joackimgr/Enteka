@@ -146,9 +146,13 @@ src/
 - ~~`POST /upload` was unauthenticated (anyone could fill the disk) and accepted any file type/size~~ → fixed, requires JWT, extension allowlist (jpg/jpeg/png/gif/webp), 5 MB chunked limit via `MAX_UPLOAD_SIZE_MB`, magic-byte check, empty-file reject
 - ~~`GET /uploads/{filename}` was unauthenticated~~ → fixed, requires `token` query param (valid JWT), only serves allowlisted image extensions
 - ~~`MAX_uPLOAD_SIZE_MB` typo in setup.py crashed backend on startup~~ → fixed to `MAX_UPLOAD_SIZE_MB`
+- ~~"database is locked" errors under concurrent writes~~ → `create_connection` now enables WAL mode, `busy_timeout=5000`, and `foreign_keys=ON` (SQLite-only; migrated DB engine handles concurrency natively when we move off SQLite)
+- ~~`insert_user` never returned the new id / swallowed errors~~ → returns `cursor.lastrowid`; returns `None` on `sqlite3.Error`; `POST /signup` checks the return and returns `409` on the signup race (pre-check via `get_user_hash` + post-INSERT confirmation)
+- ~~`chats.created_at` / `friends.created_at` stored UTC while `messages.timestamp` was localtime~~ → both now `datetime('now', 'localtime')`
+- ~~`POST /chats` with a nonexistent `user2_id` returned 200~~ → `get_user_by_id` guard, now returns `JSONResponse(status_code=404)`
 
 **Not yet implemented (backend):**
-- None. All planned backend features are done.
+- None. All planned backend features are done. (Concurrency rewrite — aiosqlite/threading.Lock — deliberately skipped; WAL + busy_timeout suffice for SQLite dev, DB migrates later.)
 
 ## VoIP status
 
