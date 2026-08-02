@@ -9,7 +9,8 @@ import logging
 logger = logging.getLogger("enteka.routers.uploads")
 router = APIRouter(tags=["uploads"])
 
-os.makedirs("uploads", exist_ok=True)
+UPLOAD_DIR = os.getenv("UPLOAD_DIR", "uploads")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp", "gif"}
 MAX_UPLOAD_SIZE = int(os.getenv("MAX_UPLOAD_SIZE_MB", "5")) * 1024 * 1024
@@ -53,7 +54,7 @@ async def upload_image(authorization: str = Header(None), file: UploadFile = Fil
         raise HTTPException(status_code=400, detail="File is not a valid image.")
     
     filename = f"{uuid.uuid4().hex}.{ext}"
-    filepath = os.path.join("uploads", filename)
+    filepath = os.path.join(UPLOAD_DIR, filename)
     try:
         with open(filepath, "wb") as f:
             f.write(encrypt_bytes(content))
@@ -67,8 +68,8 @@ async def upload_image(authorization: str = Header(None), file: UploadFile = Fil
 async def serve_upload(filename: str, token: str = Query(None)):
     authenticate_caller(state.conn, f"Bearer {token}" if token else None)
 
-    filepath = os.path.normpath(os.path.join("uploads", filename))
-    if not filepath.startswith("uploads" + os.sep) or not os.path.exists(filepath):
+    filepath = os.path.normpath(os.path.join(UPLOAD_DIR, filename))
+    if not filepath.startswith(os.path.normpath(UPLOAD_DIR) + os.sep) or not os.path.exists(filepath):
         raise HTTPException(status_code=404, detail="File not found.")
     ext = filename.split(".")[-1].lower() if "." in filename else ""
     if ext not in ALLOWED_EXTENSIONS:
