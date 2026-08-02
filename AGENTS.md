@@ -157,6 +157,13 @@ src/
 - ~~`POST /chats` with a nonexistent `user2_id` returned 200~~ → `get_user_by_id` guard, now returns `JSONResponse(status_code=404)`
 - ~~Profile picture column missing / settings endpoints didn't exist~~ → Tier 4 (`feature/settings-endpoints`): added `profile_picture` column to `users` (with `ALTER TABLE` migration guarded by `PRAGMA table_info` for existing DBs) and new `routers/settings.py` with `GET /users/me`, `PUT /users/me/username` (re-issues JWT), `PUT /users/me/email`, `PUT /users/me/password` (verifies current via bcrypt), `PUT /users/me/profile-picture` (validates `/uploads/` path). DB helpers `get_user_profile`, `update_username`, `update_email`, `update_password`, `update_profile_picture`, `get_user_hash_by_id`; `update_username`/`update_email` catch `sqlite3.IntegrityError` → `None` so routers return 409. Frontend settings UI NOT built — backend only.
 
+**Tests (Tier 5, `feature/testing-production`):**
+- Full pytest suite in `Backend/tests/` — 56 tests covering auth (signup/login/verify + 409 collisions), chats (create/duplicate/404/403), messages (send/get/empty/forbidden), friends (request/accept/reject/delete/search/self-block), uploads (auth/extension/magic-bytes/size/serve roundtrip), settings (all 5 endpoints + collisions + auth), and WebSocket (token reject 1008, non-participant 1008, message broadcast + persistence, typing exclusion, VoIP signaling relay).
+- `tests/conftest.py` builds a fresh FastAPI app per test with a temp SQLite DB (`tmp_path`) and temp `UPLOAD_DIR`, overriding `state.conn`/`state.manager` — tests never touch the real `Enteka.db` or `Backend/uploads/`. Env vars set to test values (`SECRET_KEY`, `ENCRYPTION_KEY`, etc.) at import time so tests don't depend on `Backend/.env`.
+- Run with: `cd Backend && .venv/bin/python -m pytest` (or `pytest`). `pytest.ini` sets `testpaths = tests`.
+- `requirements.txt` now includes `pytest==9.1.1` and `httpx==0.28.1` (TestClient dependency).
+- `routers/uploads.py` upload dir is now configurable via `UPLOAD_DIR` env var (default `uploads`) — added so tests don't pollute the real uploads folder; also hardened the serve-path check to use `os.path.normpath(UPLOAD_DIR)`.
+
 **Not yet implemented (backend):**
 - None. All planned backend features are done. (Concurrency rewrite — aiosqlite/threading.Lock — deliberately skipped; WAL + busy_timeout suffice for SQLite dev, DB migrates later.)
 
