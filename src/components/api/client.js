@@ -78,7 +78,7 @@ export const createChat = async (user2Id) => {
         const token = localStorage.getItem("token")
         const response = await axios.post(`${BASE_URL}/chats`,
             { user2_id: user2Id },
-            { headers: {Authorization: `Bearer ${token}`}}
+            { headers: { Authorization: `Bearer ${token}` }}
         )
         return response.data
     } catch (error) {
@@ -93,7 +93,7 @@ export const sendMessages = async (chatId, content) => {
         const token = localStorage.getItem("token")
         const response = await axios.post(`${BASE_URL}/messages`,
             { chat_id: chatId, content: content},
-            { headers: {Authorization: `Bearer ${token}`}}
+            { headers: { Authorization: `Bearer ${token}` }}
         )
         return response.data
     } catch (error) {
@@ -106,7 +106,7 @@ export const getMessages = async (chatId) => {
     try {
         const token = localStorage.getItem("token")
         const response = await axios.get(`${BASE_URL}/messages/${chatId}`, {
-            headers: {Authorization: `Bearer ${token}`}
+            headers: { Authorization: `Bearer ${token}` }
         })
         return response.data
     } catch (error) {
@@ -119,7 +119,7 @@ export const getChats = async () => {
     try {
         const token = localStorage.getItem("token")
         const response = await axios.get(`${BASE_URL}/chats`, {
-            headers: {Authorization: `Bearer ${token}`}
+            headers: { Authorization: `Bearer ${token}` }
         })
         return response.data
     } catch (error) {
@@ -132,7 +132,7 @@ export const getFriendsList = async () => {
     try {
         const token = localStorage.getItem("token")
         const response = await axios.get(`${BASE_URL}/friends`, {
-            headers: {Authorization: `Bearer ${token}`}
+            headers: { Authorization: `Bearer ${token}` }
         })
         return response.data
     } catch (error) {
@@ -144,7 +144,7 @@ export const getFriendRequests = async () => {
     try {
         const token = localStorage.getItem("token")
         const response = await axios.get(`${BASE_URL}/friends/requests`, {
-            headers: {Authorization: `Bearer ${token}`}
+            headers: { Authorization: `Bearer ${token}` }
         })
         return response.data
     } catch (error) {
@@ -157,7 +157,7 @@ export const sendFriendRequest = async (user_id) => {
         const token = localStorage.getItem("token")
         const response = await axios.post(`${BASE_URL}/friends/request/${user_id}`, 
             { user2_id: user_id }, 
-            { headers: {Authorization: `Bearer ${token}` }
+            { headers: { Authorization: `Bearer ${token}` }
         })
         console.log("Friend Request has been sent")
         return response.data
@@ -170,7 +170,7 @@ export const acceptFriendRequest = async (request_id) => {
     try {
         const token = localStorage.getItem("token")
         const response = await axios.post(`${BASE_URL}/friends/accept/${request_id}`, {}, {
-            headers: {Authorization: `Bearer ${token}`}
+            headers: { Authorization: `Bearer ${token}` }
         })
         return response.data
     } catch (error) {
@@ -182,7 +182,7 @@ export const rejectFriendRequest = async (request_id) => {
     try {
         const token = localStorage.getItem("token")
         const response = await axios.post(`${BASE_URL}/friends/reject/${request_id}`, {}, {
-            headers: {Authorization: `Bearer ${token}`}
+            headers: { Authorization: `Bearer ${token}`}
         })
         return response.data
     } catch (error) {
@@ -194,10 +194,80 @@ export const deleteFriend = async (friend_id) => {
     try {
         const token = localStorage.getItem("token")
         const response = await axios.delete(`${BASE_URL}/friends/${friend_id}`, {
-            headers: {Authorization: `Bearer ${token}`}
+            headers: { Authorization: `Bearer ${token}` }
         })
         return response.data
     } catch (error) {
         console.error("Error deleting friend", error)
+    }
+}
+
+export const getMe = async () => {
+    try {
+        const token = localStorage.getItem("token")
+        const response = await axios.get(`${BASE_URL}/users/me`, {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+        return response.data
+    } catch (error) {
+        console.error("Error getting user's info", error)
+        if (error.response?.data) return error.response.data
+        return null
+    }
+}
+
+export const updateUsername = async (username) => {
+    try {
+        const token = localStorage.getItem("token")
+        const response = await axios.put(`${BASE_URL}/users/me/username`, { username }, {
+            headers: { Authorization: `Bearer ${token}`}
+        })
+        return response.data
+    } catch (error) {
+        console.error("Error updating username", error)
+        if (error.response?.data) return error.response.data;
+        return null
+    }
+}
+
+export const updateEmail = async (email) => {
+    try {
+        const token = localStorage.getItem("token")
+        const response = await axios.put(`${BASE_URL}/users/me/email`, { email }, {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+        return response.data
+    } catch (error) {
+        console.error("Error updating email", error)
+        if (error.response?.data) return error.response.data
+        return null
+    }
+}
+
+export const updatePassword = async (current_password, new_password) => {
+    try {
+        const token = localStorage.getItem("token")
+        const response = await axios.put(`${BASE_URL}/users/me/password`, { current_password, new_password }, {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+        return response.data
+    } catch (error) {
+        console.error("Error updating password", error)
+        if (error.response?.data) return error.response.data
+        return null
+    }
+}
+
+export const updateProfilePic = async (image_url) => {
+    try {
+        const token = localStorage.getItem("token")
+        const response = await axios.put(`${BASE_URL}/users/me/profile-picture`, { image_url }, {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+        return response.data
+    } catch (error) {
+        console.error("Error updating profile picture", error)
+        if (error.response?.data) return error.response.data
+        return null
     }
 }
