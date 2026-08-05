@@ -44,6 +44,8 @@ logs/
 .idea/
 
 Enteka.db
+Enteka.db-shm
+Enteka.db-wal
 Backend/uploads/
 
 session-*.md

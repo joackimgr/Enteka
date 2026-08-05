@@ -35,7 +35,7 @@ function App() {
   return (
       <Routes>
         <Route path='/' element={<AuthPage setIsAuthenticated={setIsAuthenticated} setUserName={setUserName}/>} />
-        <Route path='/home' element={isAuthenticated ? <HomePage userName={userName}/> : <Navigate to='/' replace />} /> 
+        <Route path='/home' element={isAuthenticated ? <HomePage userName={userName} setUserName={setUserName}/> : <Navigate to='/' replace />} /> 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
   )
