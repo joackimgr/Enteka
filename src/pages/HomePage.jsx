@@ -7,7 +7,7 @@ import ChatView from "../components/chat/ChatView"
 import FriendsView from "../components/friends/FriendsView"
 import { useState } from "react"
 
-export default function HomePage({userName}) {
+export default function HomePage({userName, setUserName}) {
     const [chatMode, setChatMode] = useState(true)
     const [welcome, setWelcome] = useState(true)
     const [activeSettings, setActiveSettings] = useState(false)
@@ -60,7 +60,7 @@ export default function HomePage({userName}) {
                         <NewMessage setSelectedChat={setSelectedChat} bumpChatRefresh={bumpChatRefresh} />
                     }
                     {!friendsMode && !chatMode &&
-                        <SettingsPanel activeSettings={activeSettings} />
+                        <SettingsPanel activeSettings={activeSettings} setUserName={setUserName} />
                     }
                     {friendsMode &&
                         <FriendsView userName={userName}/>
