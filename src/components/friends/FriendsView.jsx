@@ -11,7 +11,8 @@ export default function FriendsView(props) {
     const listToShow = searchText !== "" ? users : []
 
     async function handleUserClick(user) {
-        await sendFriendRequest(user.id)
+        const data = await sendFriendRequest(user.id)
+        if (data?.auth === false && data.message === "Network error. Try again.") return;
         setSentRequest(prev => new Set(prev).add(user.id))
     }
 

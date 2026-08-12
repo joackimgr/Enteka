@@ -2,7 +2,7 @@ import setup
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from db.database import create_connection, create_table
-from core.connection_manager import ConnectionManager
+from core.connection_manager import ConnectionManager, NotificationManager
 from routers import auth, chats, friends, uploads, ws, settings
 from core import state
 import os
@@ -10,6 +10,7 @@ import os
 state.conn = create_connection("Enteka.db")
 create_table(state.conn)
 state.manager = ConnectionManager()
+state.notification_manager = NotificationManager()
 
 app = FastAPI()
 
