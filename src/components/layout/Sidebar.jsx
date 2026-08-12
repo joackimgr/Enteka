@@ -8,7 +8,6 @@ export default function Sidebar(props) {
     const [chats, setChats] = useState()
     const [friends, setFriends] = useState()
     const [requests, setRequests] = useState()
-    const [showRequests, setShowRequests] = useState(true)
 
     async function handleFriendClick(friend) {
         const chat = await createChat(friend.friend_id)
@@ -37,7 +36,7 @@ export default function Sidebar(props) {
             setLoadingFriends(false)
         }
         fetchFriends()
-    }, [])
+    }, [props.friendsRefresh])
 
     useEffect(() => {
         async function fetchRequests() {
@@ -47,7 +46,7 @@ export default function Sidebar(props) {
             }
         }
         fetchRequests()
-    }, [])
+    }, [props.friendsRefresh])
 
     async function handleAccept(request) {
         await acceptFriendRequest(request.id)

@@ -1,10 +1,29 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
-from db.database import get_user_by_username, insert_message, chat_belongs_to_user
+from db.database import get_user_by_username, insert_message, chat_belongs_to_user, get_other_participant
 from security.auth import verify_token
 from datetime import datetime
 from core import state
 
 router = APIRouter(tags=["websocket"])
+
+@router.websocket("/ws/notifications")
+async def notification_endpoint(websocket: WebSocket, token: str = Query()):
+    payload = verify_token(token)
+    if payload is None:
+        await websocket.close(code=1008)
+        return
+    username = payload["sub"]
+    caller_id = get_user_by_username(state.conn, username)
+    if caller_id is None:
+        await websocket.close(code=1008)
+        return
+    
+    await state.notification_manager.connect(websocket, caller_id)
+    try:
+        while True:
+            await websocket.receive_json()
+    except WebSocketDisconnect:
+        state.notification_manager.disconnect(websocket, caller_id)
 
 @router.websocket("/ws/{chat_id}")
 async def webSocket_endpoint(websocket: WebSocket, chat_id: int, token: str = Query()):
@@ -38,6 +57,11 @@ async def webSocket_endpoint(websocket: WebSocket, chat_id: int, token: str = Qu
                                                   "image_url": None,
                                                   "timestamp": datetime.now().strftime("%H:%M")
                                                   }, chat_id)
+                    other_user_id = get_other_participant(state.conn, chat_id, caller_id)
+                    if other_user_id:
+                        await state.notification_manager.send_to_user(
+                            {"type": "new_message", "chat_id": chat_id}, other_user_id
+                        )
                 elif msg_type == "image":
                     content = data.get("content", "")
                     image_url = data.get("image_url")
@@ -49,7 +73,12 @@ async def webSocket_endpoint(websocket: WebSocket, chat_id: int, token: str = Qu
                                                   "content": content,
                                                   "image_url": image_url,
                                                   "timestamp": datetime.now().strftime("%H:%M")
-                                                  }, chat_id)
+                                                }, chat_id)
+                    other_user_id = get_other_participant(state.conn, chat_id, caller_id)
+                    if other_user_id:
+                        await state.notification_manager.send_to_user(
+                            {"type": "new_message", "chat_id": chat_id}, other_user_id
+                        )
                 elif msg_type == "typing":
                     await state.manager.broadcast({"type": "typing", "username": username}, chat_id, exclude=websocket)
                 elif msg_type == "stop_typing":
@@ -66,3 +95,4 @@ async def webSocket_endpoint(websocket: WebSocket, chat_id: int, token: str = Qu
                     await state.manager.broadcast({"type": "call_reject", "username": username}, chat_id, exclude=websocket)
         except WebSocketDisconnect:
             state.manager.disconnect(websocket, chat_id)
+            

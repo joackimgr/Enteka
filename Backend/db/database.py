@@ -471,6 +471,24 @@ def update_profile_picture(conn, user_id, image_url):
         logger.error(e)
         return None
     
+def get_other_participant(conn, chat_id, user_id):
+    try:
+        sql = "SELECT user1_id, user2_id FROM chats WHERE id = ?"
+        cursor = conn.cursor()
+        cursor.execute(sql, (chat_id,))
+        result = cursor.fetchone()
+        if result is None:
+            return None
+        user1_id, user2_id = result
+        
+        if user_id == user1_id:
+            return user2_id
+        else:
+            return user1_id
+    except sqlite3.Error as e:
+        logger.error(e)
+        return None
+    
 if __name__ == "__main__":
     database = "Enteka.db"
     conn = create_connection(database)
