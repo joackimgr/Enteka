@@ -1,0 +1,48 @@
+name: Telegram Push Notification
+
+on:
+  push:
+    branches:
+      - '**' 
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Guard against missing head_commit
+        id: commit
+        run: |
+          if [ -z "${{ github.event.head_commit }}" ] || [ "${{ github.event.head_commit }}" == "null" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Sanitize commit message for HTML
+        id: msg
+        if: steps.commit.outputs.skip == 'false'
+        run: |
+          MSG="${{ github.event.head_commit.message }}"
+          MSG="${MSG//&/&amp;}"
+          MSG="${MSG//</&lt;}"
+          MSG="${MSG//>/&gt;}"
+          MSG="${MSG:0:500}"
+          {
+            echo "text<<EOF"
+            echo "$MSG"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Send Telegram Message
+        if: steps.commit.outputs.skip == 'false'
+        uses: appleboy/telegram-action@v1.0.1
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          format: html
+          message: |
+            🚀 <b>${{ github.actor }}</b> just pushed to <code>${{ github.repository }}</code>!
+
+            🌿 <b>Branch:</b> <code>${{ github.ref_name }}</code>
+            💬 <b>Commit:</b> <code>${{ steps.msg.outputs.text }}</code>
+            🔗 <a href="${{ github.event.head_commit.url }}">View Changes</a>
