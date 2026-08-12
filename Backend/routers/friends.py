@@ -13,6 +13,9 @@ async def request_friends(user_id: int, authorization: str = Header(None)):
     caller_id = authenticate_caller(state.conn, authorization)
     result = send_friend_request(state.conn, caller_id, user_id)
     if result:
+        await state.notification_manager.send_to_user(
+            {"type": "new_friend_request"}, user_id
+        )
         return {"auth": True, "message": "Friend request sent."}
     return JSONResponse(status_code=409, content={"auth": False, "message": "Friend request already sent."})
 

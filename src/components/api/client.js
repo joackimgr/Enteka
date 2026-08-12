@@ -163,6 +163,8 @@ export const sendFriendRequest = async (user_id) => {
         return response.data
     } catch (error) {
         console.error("Error sending request", error)
+        if(error.response?.data) return error.response.data;
+        return { auth: false, message: "Network error. Try again."}
     }
 }
 
