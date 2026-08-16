@@ -9,7 +9,7 @@ os.environ["SECRET_KEY"] = "test-secret-key-not-for-production"
 os.environ["ALGORITHM"] = "HS256"
 os.environ["ACCESS_TOKEN_EXPIRE_MINUTES"] = "30"
 os.environ["MAX_UPLOAD_SIZE_MB"] = "5"
-os.environ["ENCRYPTION_KEY"] = "***REMOVED***"
+os.environ["ENCRYPTION_KEY"] = "test-encryption-key-not-for-production"
 
 import pytest
 from fastapi.testclient import TestClient
