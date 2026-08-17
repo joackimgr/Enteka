@@ -159,7 +159,6 @@ export const sendFriendRequest = async (user_id) => {
             { user2_id: user_id }, 
             { headers: { Authorization: `Bearer ${token}` }
         })
-        console.log("Friend Request has been sent")
         return response.data
     } catch (error) {
         console.error("Error sending request", error)

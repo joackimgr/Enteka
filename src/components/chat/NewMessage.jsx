@@ -38,7 +38,6 @@ export default function NewMessage({setSelectedChat, bumpChatRefresh}) {
         let cancelled = false
         const timeoutId = setTimeout(async () => {
             const response = await searchFriends(searchText)
-            console.log(response)
             if (!cancelled) setUsers(response?.friends || [])
         }, 300)
 
