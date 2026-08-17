@@ -60,7 +60,7 @@ Create a `.env` file in the Backend directory (copy from `.env.example`):
 SECRET_KEY=your-secret-key-here
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
-P_IP=your-pc-ip-here           # e.g. 192.168.1.112, for phone testing
+P_IP=your-pc-ip-here           # e.g. 192.0.2.100, for phone testing
 ENCRYPTION_KEY=your-fernet-key-here
 ```
 
@@ -79,7 +79,7 @@ The API will be available at `http://localhost:8000`.
 Create a root `.env` file (copy from `.env.example`):
 
 ```
-VITE_PERSONAL_IP=your-laptop-ip-here   # e.g. 192.168.1.112; empty/omitted uses localhost
+VITE_PERSONAL_IP=your-laptop-ip-here   # e.g. 192.0.2.100; empty/omitted uses localhost
 ```
 
 ```bash

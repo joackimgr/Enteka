@@ -224,13 +224,13 @@ src/
 - `Backend/.env` — backend secrets (SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, P_IP, ENCRYPTION_KEY, MAX_UPLOAD_SIZE_MB). Ignored by git; copy from `.env.example`.
 - `Backend/setup.py` — loads .env, configures logging, validates required vars on startup.
 - Root `.env` — frontend Vite vars (VITE_PERSONAL_IP). Ignored by git; copy from `.env.example`.
-- Set `VITE_PERSONAL_IP` and `P_IP` to your laptop's local network IP (e.g. `192.168.1.112`) to test the app from your phone on the same WiFi.
+- Set `VITE_PERSONAL_IP` and `P_IP` to your laptop's local network IP (e.g. `192.0.2.100`) to test the app from your phone on the same WiFi.
 
 ## Git conventions
 
 - Conventional Commits style: `feat:`, `fix:`, `refactor:`, `style:`, `chore:`
 - Feature branches: `feature/short-description` (created with `git checkout -b feature/...`)
-- MIT license, repo is public and intentionally open source
+- Apache 2.0 license, repo is public and intentionally open source
 
 ## Leak check — REQUIRED before every push
 
