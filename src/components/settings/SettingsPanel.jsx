@@ -21,7 +21,7 @@ export default function SettingsPanel(props) {
         fetchProfile()
     }, [])
 
-    const options = ["username", "password", "email", "profile picture"]
+    const options = ["username", "password", "email"]
 
     function openModal(option) {
         setModal(option)
@@ -90,6 +90,9 @@ export default function SettingsPanel(props) {
             {props.activeSettings && 
                 <div className="bg-[#272B3D] rounded-[1.2rem] p-2.75 flex flex-col items-center gap-2.75">
                     {optionsItems}
+                    <div className="bg-[#2F3347] rounded-[1.2rem] p-5 box-border h-auto text-3xl w-full flex justify-center opacity-50 cursor-not-allowed">
+                        <p className="text-white m-0 font-light">Change your profile picture. <span className="text-sm text-[#9B9DB8]">(coming soon)</span></p>
+                    </div>
                 </div>
             }
             {modal === 'username' &&
