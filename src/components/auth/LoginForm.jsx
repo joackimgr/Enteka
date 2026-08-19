@@ -39,7 +39,7 @@ export default function LoginForm({onSwitch, setIsAuthenticated, setUserName}) {
     };
 
     return <form onSubmit={handleSubmit}  id="logInForm" className="flex flex-col bg-[#272B3D] justify-center items-center w-112.5 h-129.5 my-5 mx-auto rounded-[1.6rem] gap-4"> 
-            <img src={logo} alt="EntekaLogo" id="logoOnLogInForm" className="mt-6 w-30 h-30"></img>
+            <img src={logo} alt="EntekaLogo" id="logoOnLogInForm" className="mt-6" width={95} height={95}></img>
             
             <label htmlFor="logInUsername" className="text-2xl text-[#F0F0F5]">Username</label>
             <input value={formData.username} type="text" name="username" id="logInUsername" onChange={handleChange} className="w-62.5 text-[#F0F0F5] border-none rounded-[1.1rem] h-9.25 bg-[#2F3347] p-0 box-border focus:outline-none pl-3.5 focus:box-border" required/>

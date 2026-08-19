@@ -41,7 +41,7 @@ export default function SignUpForm({onSwitch, setIsAuthenticated, setUserName}) 
         }
 
     return <form onSubmit={handleSubmit} id="signUpForm" className="flex flex-col bg-[#272B3D] justify-center items-center w-112.5 h-auto my-5 mx-auto rounded-[1.6rem] gap-4">
-                <img src={logo} alt="EntekaLogo" width={120} height={120} id="logoOnSignUpForm" className="mt-6"/>
+                <img src={logo} alt="EntekaLogo" width={95} height={95} id="logoOnSignUpForm" className="mt-6"/>
                 
                 <label htmlFor="signUpUsername" className="text-2xl text-[#F0F0F5]">Username</label>
                 <input value={formData.username} onChange={handleChange} type="text" name="username" id="signUpUsername" className="w-62.5 text-[#F0F0F5] border-none rounded-[1.1rem] h-9.25 bg-[#2F3347] p-0 box-border focus:outline-none pl-3.5 focus:box-border" required />
