@@ -1,6 +1,7 @@
 import os
 import sys
 import tempfile
+from cryptography.fernet import Fernet
 
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BACKEND_DIR)
@@ -9,12 +10,12 @@ os.environ["SECRET_KEY"] = "test-secret-key-not-for-production"
 os.environ["ALGORITHM"] = "HS256"
 os.environ["ACCESS_TOKEN_EXPIRE_MINUTES"] = "30"
 os.environ["MAX_UPLOAD_SIZE_MB"] = "5"
-os.environ["ENCRYPTION_KEY"] = "test-encryption-key-not-for-production"
+os.environ["ENCRYPTION_KEY"] = Fernet.generate_key().decode()
 
 import pytest
 from fastapi.testclient import TestClient
 from db.database import create_connection, create_table
-from core.connection_manager import ConnectionManager
+from core.connection_manager import ConnectionManager, NotificationManager
 from core import state
 from routers import auth, chats, friends, uploads, ws, settings
 from fastapi import FastAPI
@@ -32,6 +33,7 @@ def app(tmp_path):
     create_table(conn)
     state.conn = conn
     state.manager = ConnectionManager()
+    state.notification_manager = NotificationManager()
 
     app = FastAPI()
     app.add_middleware(CORSMiddleware,
