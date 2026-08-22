@@ -40,7 +40,8 @@ async def login(user_data: UserLogin):
 
 @router.post("/verify")
 async def verify_endpoint(token: TokenRequest):
-    result = verify_token(token.token)
-    if not result:
+    try:
+        result = verify_token(token.token)
+    except HTTPException:
         return JSONResponse(status_code=401, content={"auth": False, "message": "Invalid or expired token."})
     return {"auth": True, "username": result["sub"]}

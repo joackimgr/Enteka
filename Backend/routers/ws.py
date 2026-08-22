@@ -1,4 +1,4 @@
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, Query
 from db.database import get_user_by_username, insert_message, chat_belongs_to_user, get_other_participant
 from security.auth import verify_token
 from datetime import datetime
@@ -8,16 +8,19 @@ router = APIRouter(tags=["websocket"])
 
 @router.websocket("/ws/notifications")
 async def notification_endpoint(websocket: WebSocket, token: str = Query()):
-    payload = verify_token(token)
-    if payload is None:
+    try:
+        payload = verify_token(token)
+    except HTTPException:
+        await websocket.accept()
         await websocket.close(code=1008)
         return
     username = payload["sub"]
     caller_id = get_user_by_username(state.conn, username)
     if caller_id is None:
+        await websocket.accept()
         await websocket.close(code=1008)
         return
-    
+
     await state.notification_manager.connect(websocket, caller_id)
     try:
         while True:
@@ -28,18 +31,22 @@ async def notification_endpoint(websocket: WebSocket, token: str = Query()):
 @router.websocket("/ws/{chat_id}")
 async def webSocket_endpoint(websocket: WebSocket, chat_id: int, token: str = Query()):
     if state.conn is not None:
-        payload = verify_token(token)
-        if payload is None:
+        try:
+            payload = verify_token(token)
+        except HTTPException:
+            await websocket.accept()
             await websocket.close(code=1008)
             return None
         username = payload["sub"]
         caller_id = get_user_by_username(state.conn, username)
         if caller_id is None:
+            await websocket.accept()
             await websocket.close(code=1008)
             return
         if chat_belongs_to_user(state.conn, chat_id, caller_id):
             await state.manager.connect(websocket, chat_id)
         else:
+            await websocket.accept()
             await websocket.close(code=1008)
             return
         try:
@@ -95,4 +102,3 @@ async def webSocket_endpoint(websocket: WebSocket, chat_id: int, token: str = Qu
                     await state.manager.broadcast({"type": "call_reject", "username": username}, chat_id, exclude=websocket)
         except WebSocketDisconnect:
             state.manager.disconnect(websocket, chat_id)
-            
