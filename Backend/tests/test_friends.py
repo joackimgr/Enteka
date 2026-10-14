@@ -114,3 +114,34 @@ def test_friends_search_only_accepted(app, signup, auth_headers):
     assert resp.status_code == 200
     names = [f["username"] for f in resp.json()["friends"]]
     assert "fr_o" in names
+
+
+def test_friends_include_profile_picture(app, signup, auth_headers):
+    a = signup("pic_fr_a")
+    b = signup("pic_fr_b")
+    b_id = get_id(app, "pic_fr_b", a["token"])
+    headers_a = auth_headers(a["token"])
+    headers_b = auth_headers(b["token"])
+
+    # a sets a picture, then sends b a friend request
+    assert app.put("/users/me/profile-picture", json={"image_url": "/uploads/apic.png"},
+                   headers=headers_a).status_code == 200
+    assert app.post(f"/friends/request/{b_id}", headers=headers_a).status_code == 200
+
+    # the pending request carries the sender's picture
+    requests = app.get("/friends/requests", headers=headers_b).json()["requests"]
+    assert requests[0]["profile_picture"] == "/uploads/apic.png"
+
+    # accept, then the friends list carries it on the correct side of the pair
+    req_id = requests[0]["id"]
+    assert app.post(f"/friends/accept/{req_id}", headers=headers_b).status_code == 200
+
+    friends_b = app.get("/friends", headers=headers_b).json()["friends"]
+    assert friends_b[0]["profile_picture"] == "/uploads/apic.png"
+
+    friends_a = app.get("/friends", headers=headers_a).json()["friends"]
+    assert friends_a[0]["profile_picture"] is None
+
+    # friend search carries it too
+    search = app.get("/friends/search", params={"query": "pic_fr_a"}, headers=headers_b).json()["friends"]
+    assert search[0]["profile_picture"] == "/uploads/apic.png"

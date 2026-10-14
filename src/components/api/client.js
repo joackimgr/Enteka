@@ -5,6 +5,14 @@ const BASE_URL = `http://${personalIp}:8000`;
 export const API_BASE = BASE_URL;
 export const WS_BASE = `ws://${personalIp}:8000`;
 
+// Builds a URL for an authenticated /uploads/... image. The serve endpoint takes
+// the JWT as a query param because <img> tags cannot send an Authorization header.
+export const mediaUrl = (path) => {
+    if (!path) return null
+    const token = localStorage.getItem("token")
+    return `${API_BASE}${path}?token=${token}`
+}
+
 export const loginDataPython = async (data) => {
     try {
         const response = await axios.post(`${BASE_URL}/login`, {
@@ -270,5 +278,24 @@ export const updateProfilePic = async (image_url) => {
         console.error("Error updating profile picture", error)
         if (error.response?.data) return error.response.data
         return null
+    }
+}
+
+export const uploadImage = async (file) => {
+    try {
+        const token = localStorage.getItem("token")
+        const formData = new FormData()
+        formData.append("file", file)
+        const response = await axios.post(`${BASE_URL}/upload`, formData, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "multipart/form-data"
+            }
+        })
+        return response.data
+    } catch (error) {
+        console.error("Error uploading image", error)
+        const detail = error.response?.data?.detail || error.response?.data?.message
+        return { message: detail || "Network error. Try again." }
     }
 }

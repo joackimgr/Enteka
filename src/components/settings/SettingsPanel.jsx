@@ -1,6 +1,10 @@
 import { Cog, X } from "lucide-react"
-import { getMe, updateUsername, updateEmail, updatePassword } from "../api/client"
+import { getMe, updateUsername, updateEmail, updatePassword, updateProfilePic, uploadImage } from "../api/client"
 import { useState, useEffect } from "react"
+import Avatar from "../Avatar"
+
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+const MAX_SIZE = 5 * 1024 * 1024
 
 export default function SettingsPanel(props) {
     const [modal, setModal] = useState(null)
@@ -10,6 +14,9 @@ export default function SettingsPanel(props) {
     const [newPassword, setNewPassword] = useState("")
     const [errorMessage, setErrorMessage] = useState("")
     const [profile, setProfile] = useState(null)
+    const [picFile, setPicFile] = useState(null)
+    const [picPreview, setPicPreview] = useState(null)
+    const [uploading, setUploading] = useState(false)
 
     useEffect(() => {
         async function fetchProfile() {
@@ -21,12 +28,16 @@ export default function SettingsPanel(props) {
         fetchProfile()
     }, [])
 
-    const options = ["username", "password", "email"]
+    const options = ["username", "password", "email", "profile picture"]
 
     function openModal(option) {
         setModal(option)
         if (option === 'username' && profile) setUsernameInput(profile.username)
         if (option === 'email' && profile) setEmailInput(profile.email)
+        if (option === 'profile picture') {
+            setPicFile(null)
+            setPicPreview(null)
+        }
         setErrorMessage("")
     }
 
@@ -79,6 +90,44 @@ export default function SettingsPanel(props) {
         }
     }
 
+    function handlePicFile(e) {
+        const file = e.target.files?.[0]
+        if (!file) return
+        if (!ALLOWED_TYPES.includes(file.type) || file.size > MAX_SIZE) {
+            setPicFile(null)
+            setPicPreview(null)
+            setErrorMessage("Choose a JPG, PNG, GIF or WebP image under 5 MB.")
+            return
+        }
+        setErrorMessage("")
+        setPicFile(file)
+        setPicPreview(URL.createObjectURL(file))
+    }
+
+    async function handleProfilePicSubmit(e) {
+        e.preventDefault()
+        if (!picFile) return
+        setUploading(true)
+        const uploaded = await uploadImage(picFile)
+        if (!uploaded?.image_url) {
+            setUploading(false)
+            setErrorMessage(uploaded?.message || "Upload failed.")
+            return
+        }
+        const data = await updateProfilePic(uploaded.image_url)
+        setUploading(false)
+        if (data?.auth) {
+            setProfile(prev => ({ ...prev, profile_picture: data.profile_picture }))
+            setPicFile(null)
+            setPicPreview(null)
+            setErrorMessage("")
+            setModal(null)
+            if (props.bumpProfileRefresh) props.bumpProfileRefresh()
+        } else {
+            setErrorMessage(data?.message || "Something went wrong.")
+        }
+    }
+
 
     return (
         <>
@@ -90,9 +139,6 @@ export default function SettingsPanel(props) {
             {props.activeSettings && 
                 <div className="bg-[#272B3D] rounded-[1.2rem] p-2.75 flex flex-col items-center gap-2.75">
                     {optionsItems}
-                    <div className="bg-[#2F3347] rounded-[1.2rem] p-5 box-border h-auto text-3xl w-full flex justify-center opacity-50 cursor-not-allowed">
-                        <p className="text-white m-0 font-light">Change your profile picture. <span className="text-sm text-[#9B9DB8]">(coming soon)</span></p>
-                    </div>
                 </div>
             }
             {modal === 'username' &&
@@ -165,6 +211,31 @@ export default function SettingsPanel(props) {
                         {errorMessage && <p className="text-red-400 text-sm m-0">{errorMessage}</p>}
                         <button type="submit" className="bg-[#7C6AF7] hover:bg-[#6A59E0] text-white rounded-xl py-2 cursor-pointer transition-colors duration-100">
                             Save
+                        </button>
+                    </form>
+                </div>
+            }
+            {modal === 'profile picture' &&
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setModal(null)}>
+                    <form onSubmit={handleProfilePicSubmit} onClick={(e) => e.stopPropagation()} className="bg-[#272B3D] rounded-[1.2rem] p-6 flex flex-col gap-4 w-96">
+                        <div className="flex justify-between items-center">
+                            <h2 className="text-white text-xl font-light m-0">Change your profile picture</h2>
+                            <X size={20} color="white" className="cursor-pointer" onClick={() => setModal(null)} />
+                        </div>
+                        <div className="flex justify-center">
+                            {picPreview
+                                ? <img src={picPreview} alt="Preview" className="w-24 h-24 rounded-full object-cover" />
+                                : <Avatar src={profile?.profile_picture} size={96} />}
+                        </div>
+                        <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/gif,image/webp"
+                            onChange={handlePicFile}
+                            className="text-white text-sm file:mr-3 file:rounded-xl file:border-0 file:bg-[#2F3347] file:px-4 file:py-2 file:text-white file:cursor-pointer"
+                        />
+                        {errorMessage && <p className="text-red-400 text-sm m-0">{errorMessage}</p>}
+                        <button type="submit" disabled={!picFile || uploading} className="bg-[#7C6AF7] hover:bg-[#6A59E0] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl py-2 cursor-pointer transition-colors duration-100">
+                            {uploading ? "Uploading..." : "Save"}
                         </button>
                     </form>
                 </div>

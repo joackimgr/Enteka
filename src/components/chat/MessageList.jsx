@@ -8,7 +8,7 @@ export default function MessageList({ messages, typingUser }) {
         bottomRef.current?.scrollIntoView({ behavior: "smooth" })
     }, [messages])
 
-    let testMessages = messages.map(msg => <MessageBubble key={msg.id} text={msg.text} timestamp={msg.timestamp} isMine={msg.isMine} />)
+    let testMessages = messages.map(msg => <MessageBubble key={msg.id} text={msg.text} timestamp={msg.timestamp} isMine={msg.isMine} imageUrl={msg.image_url} />)
 
     return (
         <div className="flex flex-col flex-1 overflow-y-auto min-h-0 bg-[#272B3D] px-2">

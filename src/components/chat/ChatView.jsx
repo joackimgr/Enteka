@@ -2,12 +2,13 @@ import ChatHeader from "./ChatHeader";
 import MessageList from "./MessageList";
 import MessageInput from "./MessageInput";
 import { useState, useEffect, useRef } from "react";
-import { getMessages, WS_BASE } from "../api/client";
+import { getMessages, uploadImage, WS_BASE } from "../api/client";
 
 export default function ChatView({selectedChat, handleBack, bumpChatRefresh, userName}) {
     const [messages, setMessages] = useState([])
     const [loading, setLoading] = useState(true)
     const [typingUser, setTypingUser] = useState(null)
+    const [uploading, setUploading] = useState(false)
     const wsRef = useRef(null)
     const typingTimerRef = useRef(null)
     const isIntentionalCloseRef = useRef(false)
@@ -22,6 +23,17 @@ export default function ChatView({selectedChat, handleBack, bumpChatRefresh, use
             wsRef.current.send(JSON.stringify({ type: "stop_typing" }))
         }
        if (typingTimerRef.current) clearTimeout(typingTimerRef.current)
+    }
+
+    async function sendImage(file) {
+        setUploading(true)
+        const data = await uploadImage(file)
+        setUploading(false)
+        if (!data?.image_url) return
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({ type: "image", image_url: data.image_url, content: "" }))
+            wsRef.current.send(JSON.stringify({ type: "stop_typing" }))
+        }
     }
 
     function handleTyping() {
@@ -60,6 +72,7 @@ export default function ChatView({selectedChat, handleBack, bumpChatRefresh, use
                 setMessages(prev => [...prev, {
                     id: data.message_id,
                     text: data.content,
+                    image_url: data.image_url,
                     timestamp: data.timestamp,
                     isMine: isMine
                 }])
@@ -110,6 +123,7 @@ export default function ChatView({selectedChat, handleBack, bumpChatRefresh, use
                 setMessages(data.messages.map(m => ({
                     id: m.id,
                     text: m.content,
+                    image_url: m.image,
                     timestamp: m.timestamp,
                     isMine: m.is_mine
                 })))
@@ -121,13 +135,13 @@ export default function ChatView({selectedChat, handleBack, bumpChatRefresh, use
 
     return (
         <div className="flex flex-col h-full min-h-0 flex-1 overflow-hidden rounded-4xl bg-[#272B3D]">
-            <ChatHeader username={selectedChat.username} handleBack={handleBack} />
+            <ChatHeader username={selectedChat.username} profilePicture={selectedChat.profile_picture} handleBack={handleBack} />
             {loading ? (
                 <div className="flex items-center justify-center flex-1 text-white">Loading messages...</div>
             ) : (
                 <MessageList messages={messages} typingUser={typingUser} />
             )}
-            <MessageInput SendMessage={addMessage} onTyping={handleTyping} />
+            <MessageInput SendMessage={addMessage} onTyping={handleTyping} onImageSelected={sendImage} uploading={uploading} />
         </div>
     )
 }

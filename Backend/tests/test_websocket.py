@@ -70,6 +70,24 @@ def test_ws_typing_excludes_sender(app, signup):
         assert next_from_a["type"] == "new_message"
 
 
+def test_ws_image_broadcast_and_persisted(app, signup, auth_headers):
+    a = signup("ws_img_a")
+    b = signup("ws_img_b")
+    chat_id = make_chat(app, a, b)
+
+    with app.websocket_connect(f"/ws/{chat_id}?token={a['token']}") as ws_a, \
+         app.websocket_connect(f"/ws/{chat_id}?token={b['token']}") as ws_b:
+        ws_a.send_json({"type": "image", "image_url": "/uploads/pic.png", "content": "look"})
+        msg = ws_b.receive_json()
+        assert msg["type"] == "new_message"
+        assert msg["image_url"] == "/uploads/pic.png"
+        assert msg["content"] == "look"
+
+    resp = app.get(f"/messages/{chat_id}", headers=auth_headers(a["token"]))
+    msgs = resp.json()["messages"]
+    assert msgs[0]["image"] == "/uploads/pic.png"
+
+
 def test_ws_message_persisted(app, signup, auth_headers):
     a = signup("ws_j")
     b = signup("ws_k")

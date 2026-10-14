@@ -119,11 +119,11 @@ def get_user_hash_by_id(conn, user_id):
     
 def search_users(conn, query):
         try:
-            sql = "SELECT id, username FROM users WHERE username LIKE ?"
+            sql = "SELECT id, username, profile_picture FROM users WHERE username LIKE ?"
             cursor = conn.cursor()
             cursor.execute(sql, (f"{query}%",))
             result = cursor.fetchall()
-            return [{"id": row[0], "username": row[1]} for row in result]
+            return [{"id": row[0], "username": row[1], "profile_picture": row[2]} for row in result]
         except sqlite3.Error as e:
             logger.error("Failed to search user.")
             logger.error(e)
@@ -191,6 +191,27 @@ def get_user_by_id(conn, id):
         result = cursor.fetchone()
         if result:
             return result[0]
+        return None
+    except sqlite3.Error as e:
+        logger.error("Failed to find user by id.")
+        logger.error(e)
+        return None
+    
+def get_user_public(conn, user_id):
+    try:
+        sql = """SELECT id, username, profile_picture
+                 FROM users 
+                 WHERE id = ?
+             """
+        cursor = conn.cursor()
+        cursor.execute(sql, (user_id, ))
+        result = cursor.fetchone()
+        if result:
+            return {
+                "id": result[0],
+                "username": result[1],
+                "profile_picture": result[2]
+                }
         return None
     except sqlite3.Error as e:
         logger.error("Failed to find user by id.")
@@ -268,7 +289,7 @@ def get_chats_by_user_id(conn, user_id):
 
 def get_user_suggestions(conn, caller_id, limit = 10):
     try:
-        sql = """SELECT id, username 
+        sql = """SELECT id, username, profile_picture 
         FROM users 
         WHERE id != ? 
         ORDER BY RANDOM() 
@@ -277,7 +298,7 @@ def get_user_suggestions(conn, caller_id, limit = 10):
         cursor =  conn.cursor()
         cursor.execute(sql, (caller_id, limit))
         result = cursor.fetchall()
-        return [{"id": row[0], "username": row[1]} for row in result]
+        return [{"id": row[0], "username": row[1], "profile_picture": row[2]} for row in result]
     except sqlite3.Error as e:
         logger.error("Failed to get user suggestions.")
         logger.error(e)
@@ -328,7 +349,7 @@ def reject_friend_request(conn, request_id, user_id):
 
 def get_pending_requests(conn, user_id):
     try:
-        sql = """SELECT f.id, f.from_id, u.username, f.created_at
+        sql = """SELECT f.id, f.from_id, u.username, f.created_at, u.profile_picture
         FROM friends f
         JOIN users u ON f.from_id = u.id
         WHERE f.to_id = ? AND f.status = 'pending'
@@ -338,7 +359,7 @@ def get_pending_requests(conn, user_id):
         cursor.execute(sql, (user_id,))
         result = cursor.fetchall()
         if result:
-            return [{"id": row[0], "from_id": row[1], "username": row[2], "created_at": row[3]} for row in result]
+            return [{"id": row[0], "from_id": row[1], "username": row[2], "created_at": row[3], "profile_picture": row[4]} for row in result]
         return []
     except sqlite3.Error as e:
         logger.error(e)
@@ -348,7 +369,8 @@ def get_friends(conn, user_id):
     try:
         sql = """SELECT f.id,
         CASE WHEN f.from_id = ? THEN f.to_id ELSE f.from_id END AS friend_id,
-        CASE WHEN f.from_id = ? THEN u2.username ELSE u1.username END AS username
+        CASE WHEN f.from_id = ? THEN u2.username ELSE u1.username END AS username,
+        CASE WHEN f.from_id = ? THEN u2.profile_picture ELSE u1.profile_picture END AS profile_picture
         FROM friends f
         JOIN users u1 ON f.from_id = u1.id
         JOIN users u2 ON f.to_id = u2.id
@@ -356,10 +378,10 @@ def get_friends(conn, user_id):
         ORDER BY f.created_at DESC
         """
         cursor = conn.cursor()
-        cursor.execute(sql, (user_id, user_id, user_id, user_id))
+        cursor.execute(sql, (user_id, user_id, user_id, user_id, user_id))
         result = cursor.fetchall()
         if result:
-            return [{"id": row[0], "friend_id": row[1], "username": row[2]} for row in result]
+            return [{"id": row[0], "friend_id": row[1], "username": row[2], "profile_picture": row[3]} for row in result]
         return []
     except sqlite3.Error as e:
         logger.error(e)
@@ -381,7 +403,7 @@ def remove_friend(conn, user_id, friend_id):
     
 def search_friends(conn, user_id, query):
     try:
-        sql = """SELECT DISTINCT u.id, u.username
+        sql = """SELECT DISTINCT u.id, u.username, u.profile_picture
         FROM users u
         JOIN friends f ON (u.id = f.from_id OR u.id = f.to_id)
         WHERE (f.from_id = ? OR f.to_id = ?)
@@ -392,7 +414,7 @@ def search_friends(conn, user_id, query):
         cursor = conn.cursor()
         cursor.execute(sql, (user_id, user_id, user_id, f"{query}%"))
         result = cursor.fetchall()
-        return [{"id": row[0], "username": row[1]} for row in result]
+        return [{"id": row[0], "username": row[1], "profile_picture": row[2]} for row in result]
     except sqlite3.Error as e:
         logger.error(e)
         return None
