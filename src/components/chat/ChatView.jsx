@@ -65,7 +65,7 @@ export default function ChatView({selectedChat, handleBack, bumpChatRefresh, use
                 }])
                 if (bumpChatRefresh) bumpChatRefresh()
             } else if (data.type === "typing") {
-                setTypingUser(data.username)
+                if (data.username !== userName) setTypingUser(data.username)
             } else if (data.type === "stop_typing") {
                 setTypingUser(prev => prev === data.username ? null : prev)
             }
