@@ -15,6 +15,8 @@ class ConnectionManager():
 
     async def broadcast(self, message, chat_id, exclude=None):
         for connection in list(self.active_connections.get(chat_id, [])):
+            if connection is exclude:
+                continue
             try:
                 await connection.send_json(message)
             except Exception:

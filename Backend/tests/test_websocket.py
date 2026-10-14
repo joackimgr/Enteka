@@ -64,6 +64,10 @@ def test_ws_typing_excludes_sender(app, signup):
         msg = ws_b.receive_json()
         assert msg["type"] == "typing"
         assert msg["username"] == a["username"]
+        
+        ws_a.send_json({"type": "message", "content": "follow-up"})
+        next_from_a = ws_a.receive_json()
+        assert next_from_a["type"] == "new_message"
 
 
 def test_ws_message_persisted(app, signup, auth_headers):
