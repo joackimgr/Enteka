@@ -50,12 +50,15 @@ async def chats_get(authorization: str = Header(None)):
             other_user_id = row[2]
         else:
             other_user_id = row[1]
-        other_username = get_user_by_id(state.conn, other_user_id)
+        other_user = get_user_public(state.conn, other_user_id)
+        other_username = other_user["username"] if other_user else None
+        other_profile_picture = other_user["profile_picture"] if other_user else None
         last_msg = get_last_message_by_chat_id(state.conn, row[0])
         if last_msg:
             formatted_chats.append({
                 "chat_id": row[0],
                 "other_username": other_username,
+                "other_profile_picture": other_profile_picture,
                 "passkey_hash": row[3],
                 "created_at": row[4],
                 "last_message": last_msg[0] if last_msg else None,

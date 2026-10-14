@@ -144,3 +144,34 @@ def test_suggestions_exclude_self(app, signup, auth_headers):
     assert data["auth"] is True
     usernames = [s["username"] for s in data["suggestions"]]
     assert "sug_a" not in usernames
+
+
+def test_chat_list_includes_other_profile_picture(app, signup, auth_headers):
+    a = signup("chat_pic_a")
+    b = signup("chat_pic_b")
+    headers_a = auth_headers(a["token"])
+    headers_b = auth_headers(b["token"])
+    chat = make_chat(app, a, b, headers_a)
+    app.post("/messages", json={"chat_id": chat["chat_id"], "content": "hi"}, headers=headers_a)
+
+    # before b has a picture, the field is present and null
+    chats = app.get("/chats", headers=headers_a).json()["chats"]
+    assert chats[0]["other_profile_picture"] is None
+
+    resp = app.put("/users/me/profile-picture", json={"image_url": "/uploads/bpic.png"}, headers=headers_b)
+    assert resp.status_code == 200
+
+    chats = app.get("/chats", headers=headers_a).json()["chats"]
+    assert chats[0]["other_profile_picture"] == "/uploads/bpic.png"
+
+
+def test_user_search_includes_profile_picture(app, signup, auth_headers):
+    a = signup("search_pic_self")
+    b = signup("search_pic_target")
+    resp = app.put("/users/me/profile-picture", json={"image_url": "/uploads/spic.png"},
+                   headers=auth_headers(b["token"]))
+    assert resp.status_code == 200
+
+    resp = app.get("/users/search", params={"query": "search_pic_ta"}, headers=auth_headers(a["token"]))
+    users = resp.json()
+    assert users[0]["profile_picture"] == "/uploads/spic.png"
