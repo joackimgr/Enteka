@@ -126,3 +126,19 @@ def test_ws_voip_forward(app, signup):
         msg = ws_b.receive_json()
         assert msg["type"] == "ice_candidate"
         assert msg["data"]["candidate"] == "cand-1"
+
+
+def test_ws_read_broadcasts(app, signup):
+    a = signup("ws_read_a")
+    b = signup("ws_read_b")
+    chat_id = make_chat(app, a, b)
+
+    with app.websocket_connect(f"/ws/{chat_id}?token={a['token']}") as ws_a, \
+         app.websocket_connect(f"/ws/{chat_id}?token={b['token']}") as ws_b:
+        ws_a.send_json({"type": "message", "content": "hi"})
+        ws_b.receive_json()          # b receives the message
+        ws_a.receive_json()          # a receives its own new_message echo
+        ws_b.send_json({"type": "read"})
+        msg = ws_a.receive_json()
+        assert msg["type"] == "messages_read"
+        assert msg["last_read_message_id"] >= 1

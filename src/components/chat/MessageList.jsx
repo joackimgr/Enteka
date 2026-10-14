@@ -37,7 +37,7 @@ export default function MessageList({ messages, typingUser }) {
         return () => observer.disconnect()
     }, [])
 
-    let testMessages = messages.map(msg => <MessageBubble key={msg.id} text={msg.text} timestamp={msg.timestamp} isMine={msg.isMine} imageUrl={msg.image_url} />)
+    let testMessages = messages.map(msg => <MessageBubble key={msg.id} text={msg.text} timestamp={msg.timestamp} isMine={msg.isMine} imageUrl={msg.image_url} read={msg.read} />)
 
     return (
         <div ref={containerRef} onScroll={handleScroll} className="flex flex-col flex-1 overflow-y-auto min-h-0 bg-[#272B3D] px-2">

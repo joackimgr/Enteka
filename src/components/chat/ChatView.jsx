@@ -36,6 +36,13 @@ export default function ChatView({selectedChat, handleBack, bumpChatRefresh, use
         }
     }
 
+    function sendRead() {
+        if (typeof document !== "undefined" && document.visibilityState !== "visible") return
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({ type: "read" }))
+        }
+    }
+
     function handleTyping() {
         if (wsRef.current?.readyState === WebSocket.OPEN) {
             wsRef.current.send(JSON.stringify({ type: "typing"}))
@@ -62,6 +69,7 @@ export default function ChatView({selectedChat, handleBack, bumpChatRefresh, use
 
         websocket.onopen = () => {
             reconnectAttemptRef.current = 0
+            sendRead()
         }
 
         websocket.onmessage = (event) => {
@@ -74,9 +82,13 @@ export default function ChatView({selectedChat, handleBack, bumpChatRefresh, use
                     text: data.content,
                     image_url: data.image_url,
                     timestamp: data.timestamp,
-                    isMine: isMine
+                    isMine: isMine,
+                    read: false
                 }])
+                if (!isMine) sendRead()
                 if (bumpChatRefresh) bumpChatRefresh()
+            } else if (data.type === "messages_read") {
+                setMessages(prev => prev.map(m => (m.isMine && m.id <= data.last_read_message_id) ? { ...m, read: true } : m))
             } else if (data.type === "typing") {
                 if (data.username !== userName) setTypingUser(data.username)
             } else if (data.type === "stop_typing") {
@@ -125,12 +137,25 @@ export default function ChatView({selectedChat, handleBack, bumpChatRefresh, use
                     text: m.content,
                     image_url: m.image,
                     timestamp: m.timestamp,
-                    isMine: m.is_mine
+                    isMine: m.is_mine,
+                    read: m.read
                 })))
             }
             setLoading(false)
+            sendRead()
         }
         fetchMessages()
+    }, [selectedChat.chat_id])
+
+    // Mark read again when the user returns to the tab/window.
+    useEffect(() => {
+        function handleFocus() { sendRead() }
+        window.addEventListener("focus", handleFocus)
+        document.addEventListener("visibilitychange", handleFocus)
+        return () => {
+            window.removeEventListener("focus", handleFocus)
+            document.removeEventListener("visibilitychange", handleFocus)
+        }
     }, [selectedChat.chat_id])
 
     return (

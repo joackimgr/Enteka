@@ -62,6 +62,16 @@ def create_table(conn):
         FOREIGN KEY (to_id) REFERENCES users(id),
         UNIQUE(from_id, to_id)
         );
+
+        CREATE TABLE IF NOT EXISTS reads (
+        chat_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        last_read_message_id INTEGER NOT NULL,
+        updated_at TEXT DEFAULT (datetime('now', 'localtime')),
+        FOREIGN KEY (chat_id) REFERENCES chats(id),
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        UNIQUE(chat_id, user_id)
+        );
         """
         cursor = conn.cursor()
         cursor.executescript(sql_create_tables)
@@ -267,6 +277,61 @@ def get_last_message_by_chat_id(conn, chat_id):
         logger.error(e)
         return None
     
+def get_latest_message_id(conn, chat_id):
+    try:
+        sql = "SELECT MAX(id) FROM messages WHERE chat_id = ?"
+        cursor = conn.cursor()
+        cursor.execute(sql, (chat_id,))
+        result = cursor.fetchone()
+        return result[0] if result and result[0] is not None else None
+    except sqlite3.Error as e:
+        logger.error("Failed to get latest message id.")
+        logger.error(e)
+        return None
+
+def mark_chat_read(conn, chat_id, user_id, last_read_message_id):
+    try:
+        sql = """
+        INSERT INTO reads (chat_id, user_id, last_read_message_id)
+        VALUES (?, ?, ?)
+        ON CONFLICT(chat_id, user_id) DO UPDATE SET
+            last_read_message_id = MAX(last_read_message_id, excluded.last_read_message_id),
+            updated_at = datetime('now', 'localtime')
+        """
+        cursor = conn.cursor()
+        cursor.execute(sql, (chat_id, user_id, last_read_message_id))
+        conn.commit()
+        return True
+    except sqlite3.Error as e:
+        logger.error("Failed to mark chat as read.")
+        logger.error(e)
+        return None
+
+def get_last_read_message_id(conn, chat_id, user_id):
+    try:
+        sql = "SELECT last_read_message_id FROM reads WHERE chat_id = ? AND user_id = ?"
+        cursor = conn.cursor()
+        cursor.execute(sql, (chat_id, user_id))
+        result = cursor.fetchone()
+        return result[0] if result else 0
+    except sqlite3.Error as e:
+        logger.error("Failed to get last read message id.")
+        logger.error(e)
+        return 0
+
+def count_unread_messages(conn, chat_id, user_id):
+    try:
+        last_read = get_last_read_message_id(conn, chat_id, user_id)
+        sql = "SELECT COUNT(*) FROM messages WHERE chat_id = ? AND id > ? AND sender_id != ?"
+        cursor = conn.cursor()
+        cursor.execute(sql, (chat_id, last_read, user_id))
+        result = cursor.fetchone()
+        return result[0] if result else 0
+    except sqlite3.Error as e:
+        logger.error("Failed to count unread messages.")
+        logger.error(e)
+        return 0
+
 def get_chats_by_user_id(conn, user_id):
     try:
         sql = """SELECT id, user1_id, user2_id, passkey_hash, created_at 

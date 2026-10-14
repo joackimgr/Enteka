@@ -175,3 +175,57 @@ def test_user_search_includes_profile_picture(app, signup, auth_headers):
     resp = app.get("/users/search", params={"query": "search_pic_ta"}, headers=auth_headers(a["token"]))
     users = resp.json()
     assert users[0]["profile_picture"] == "/uploads/spic.png"
+
+
+def test_read_receipts_field(app, signup, auth_headers):
+    a = signup("read_a")
+    b = signup("read_b")
+    headers_a = auth_headers(a["token"])
+    chat = make_chat(app, a, b, headers_a)
+    chat_id = chat["chat_id"]
+
+    app.post("/messages", json={"chat_id": chat_id, "content": "first"}, headers=headers_a)
+    app.post("/messages", json={"chat_id": chat_id, "content": "second"}, headers=headers_a)
+
+    msgs = app.get(f"/messages/{chat_id}", headers=headers_a).json()["messages"]
+    assert [m["read"] for m in msgs] == [False, False]
+
+    # b opens the chat and marks it read over the socket; a receives the event
+    with app.websocket_connect(f"/ws/{chat_id}?token={a['token']}") as ws_a, \
+         app.websocket_connect(f"/ws/{chat_id}?token={b['token']}") as ws_b:
+        ws_b.send_json({"type": "read"})
+        evt = ws_a.receive_json()
+        assert evt["type"] == "messages_read"
+        assert evt["last_read_message_id"] == msgs[-1]["id"]
+
+    msgs = app.get(f"/messages/{chat_id}", headers=headers_a).json()["messages"]
+    assert [m["read"] for m in msgs] == [True, True]
+
+
+def test_chat_unread_count(app, signup, auth_headers):
+    a = signup("unread_a")
+    b = signup("unread_b")
+    headers_a = auth_headers(a["token"])
+    headers_b = auth_headers(b["token"])
+    chat = make_chat(app, a, b, headers_a)
+    chat_id = chat["chat_id"]
+
+    app.post("/messages", json={"chat_id": chat_id, "content": "hi a"}, headers=headers_b)
+    app.post("/messages", json={"chat_id": chat_id, "content": "again"}, headers=headers_b)
+
+    chats_a = app.get("/chats", headers=headers_a).json()["chats"]
+    assert chats_a[0]["unread_count"] == 2
+
+    # b's own messages never count as unread for b
+    chats_b = app.get("/chats", headers=headers_b).json()["chats"]
+    assert chats_b[0]["unread_count"] == 0
+
+    # a opens the chat and marks it read; b receives the broadcast as a sync point
+    with app.websocket_connect(f"/ws/{chat_id}?token={a['token']}") as ws_a, \
+         app.websocket_connect(f"/ws/{chat_id}?token={b['token']}") as ws_b:
+        ws_a.send_json({"type": "read"})
+        evt = ws_b.receive_json()
+        assert evt["type"] == "messages_read"
+
+    chats_a = app.get("/chats", headers=headers_a).json()["chats"]
+    assert chats_a[0]["unread_count"] == 0
