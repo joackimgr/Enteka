@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react"
-import { CircleUserRound, SearchAlert } from "lucide-react"
+import { SearchAlert } from "lucide-react"
 import { search, sendFriendRequest } from "../api/client.js"
 import { Search } from "lucide-react"
+import Avatar from "../Avatar"
 
 export default function FriendsView(props) {
     const [searchText, setSearchText] = useState('')
@@ -20,7 +21,7 @@ export default function FriendsView(props) {
         return (
         <div key={user.id} onClick={() => handleUserClick(user)} className="flex items-center justify-between bg-[#272B3D] rounded-[1.2rem] p-2.75 mb-2.75 text-3xl cursor-pointer hover:bg-[#363B52] transition-colors duration-100 ease-in">
             <div className="flex items-center gap-2.75 ml-5 font-light">
-                <CircleUserRound size={70} alt="Profile" className="text-white" />
+                <Avatar src={user.profile_picture} size={70} />
                 <p>{`${user.username}`}</p>
             </div>
             {sentRequest.has(user.id) ? <p>{`Request Sent`}</p> : <p>{`Send Friend Request`}</p>}

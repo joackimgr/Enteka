@@ -1,6 +1,7 @@
 import { Frown, CircleUserRound, Check, X } from "lucide-react"
 import { useState, useEffect} from "react"
 import { getChats, createChat, getFriendsList, getFriendRequests, acceptFriendRequest, rejectFriendRequest } from "../api/client"
+import Avatar from "../Avatar"
 
 export default function Sidebar(props) {
     const [loadingChats, setLoadingChats] = useState(true)
@@ -12,7 +13,7 @@ export default function Sidebar(props) {
     async function handleFriendClick(friend) {
         const chat = await createChat(friend.friend_id)
         if (!chat) return
-        props.setSelectedChat({id: friend.friend_id, username: friend.username, chat_id: chat.chat.chat_id})
+        props.setSelectedChat({id: friend.friend_id, username: friend.username, chat_id: chat.chat.chat_id, profile_picture: friend.profile_picture})
         props.toggleFriendsMode()
     }
 
@@ -69,7 +70,7 @@ export default function Sidebar(props) {
         return (
             <div key={request.id} className="flex justify-between gap-3 p-3 my-1.5 rounded-xl bg-[#2F3347]" >
                 <div className="flex justify-between gap-2">
-                    <CircleUserRound size={45} className="shrink-0" color="white"/>
+                    <Avatar src={request.profile_picture} size={45} />
                     <div className="flex flex-col justify-between">
                         <p className="text-lg truncate text-white">{request.username}</p>
                         <p className="text-sm truncate text-gray-400">{new Date(request.created_at).toLocaleDateString()}</p>
@@ -86,12 +87,12 @@ export default function Sidebar(props) {
 
     const chatBlocks = (chats || []).map((chat) => {
         return (
-            <div key={chat.chat_id} onClick={() => {props.setSelectedChat({chat_id: chat.chat_id, username: chat.other_username})}} className="flex items-center gap-3 p-3 my-1.5 rounded-xl cursor-pointer bg-[#2F3347] hover:bg-[#363B52] transition-colors duration-100" >
-                <CircleUserRound size={45} className="shrink-0" color="white"/>
+            <div key={chat.chat_id} onClick={() => {props.setSelectedChat({chat_id: chat.chat_id, username: chat.other_username, profile_picture: chat.other_profile_picture})}} className="flex items-center gap-3 p-3 my-1.5 rounded-xl cursor-pointer bg-[#2F3347] hover:bg-[#363B52] transition-colors duration-100" >
+                <Avatar src={chat.other_profile_picture} size={45} />
                 <div className="min-w-0 flex-1">
                     <p className="text-lg truncate text-white">{chat.other_username}</p>
                     <div className="flex justify-between">
-                        <p className="text-sm truncate text-gray-400">{chat.last_message}</p>
+                        <p className="text-sm truncate text-gray-400">{chat.last_message || (chat.last_image ? "📷 Photo" : "")}</p>
                         <p className="text-sm truncate text-gray-400">{chat.last_timestamp}</p>
                     </div>
                 </div>
@@ -102,7 +103,7 @@ export default function Sidebar(props) {
     const friendsBlocks = (friends || []).map((friend) => {
         return (
             <div key={friend.friend_id} onClick={() => handleFriendClick(friend)} className="flex items-center gap-3 p-3 my-1.5 rounded-xl cursor-pointer bg-[#2F3347] hover:bg-[#363B52] transition-colors duration-100" >
-                <CircleUserRound size={45} className="shrink-0" color="white"/>
+                <Avatar src={friend.profile_picture} size={45} />
                 <div className="min-w-0 flex-1">
                     <p className="text-lg truncate text-white">{friend.username}</p>
                 </div>

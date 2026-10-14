@@ -1,10 +1,13 @@
 import logo from "../../assets/EntekaLogo.png"
-import { Cog, CircleUserRound, Users } from 'lucide-react'
+import { Cog, Users } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from "react-router-dom"
+import { getMe } from "../api/client"
+import Avatar from "../Avatar"
 
 export default function NavBar(props) {
     const [showDropdown, setShowDropdown] = useState(false)
+    const [profilePicture, setProfilePicture] = useState(null)
     const navigate = useNavigate()
     const dropdownRef = useRef(null)
 
@@ -17,6 +20,16 @@ export default function NavBar(props) {
         setShowDropdown(false)
         navigate('/')
     }
+
+    useEffect(() => {
+        async function fetchProfile() {
+            const data = await getMe()
+            if (data && data.auth && data.profile) {
+                setProfilePicture(data.profile.profile_picture)
+            }
+        }
+        fetchProfile()
+    }, [props.profileRefresh])
 
     useEffect(() => {
         function handleClickOutside(event) {
@@ -39,7 +52,7 @@ export default function NavBar(props) {
                 <Users size={45} alt='Friends' className="cursor-pointer" color="white" onClick={props.toggleFriendsMode}/>
                 <Cog size={45} onClick={props.toggleChatMode} alt='Settings' className="cursor-pointer" color="white" />
                 <div className="relative" ref={dropdownRef}>
-                    <CircleUserRound size={45} alt="Profile" className="cursor-pointer" color="white" onClick={handleClick} />
+                    <Avatar src={profilePicture} size={45} onClick={handleClick} className="cursor-pointer" />
                     {showDropdown && (
                         <div className="absolute top-full right-0 mt-2 bg-[#272B3D] rounded-xl shadow-lg z-50">
                             <button onClick={handleLogout} className="w-full px-4 py-2 text-left text-[#E05C5C] cursor-pointer hover:bg-[#363B52] transition-colors duration-150 rounded-xl whitespace-nowrap">

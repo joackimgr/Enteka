@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
-import { CircleUserRound, SearchAlert } from "lucide-react"
+import { SearchAlert } from "lucide-react"
 import { createChat, searchFriends } from "../api/client.js"
+import Avatar from "../Avatar"
 
 export default function NewMessage({setSelectedChat, bumpChatRefresh}) {
     const [searchText, setSearchText] = useState('')
@@ -10,7 +11,7 @@ export default function NewMessage({setSelectedChat, bumpChatRefresh}) {
 
     async function handleUserClick(user) {
         let chat = await createChat(user.id)
-        setSelectedChat({id: user.id, username: user.username, chat_id: chat.chat.chat_id})
+        setSelectedChat({id: user.id, username: user.username, chat_id: chat.chat.chat_id, profile_picture: user.profile_picture})
         if (bumpChatRefresh) bumpChatRefresh()
     }
 
@@ -18,7 +19,7 @@ export default function NewMessage({setSelectedChat, bumpChatRefresh}) {
         return (
         <div key={user.id} className="flex items-center justify-between bg-[#272B3D] rounded-[1.2rem] p-2.75 mb-2.75 text-3xl cursor-pointer hover:bg-[#363B52] transition-colors duration-100 ease-in" onClick={() => handleUserClick(user)}>
             <div className="flex items-center gap-2.75 ml-5 font-light">
-                <CircleUserRound size={70} alt="Profile" className="text-white" />
+                <Avatar src={user.profile_picture} size={70} />
                 <p>{`${user.username}`}</p>
             </div>
             <p>{`Start a chat with ${user.username}`}</p>

@@ -16,6 +16,7 @@ export default function HomePage({userName, setUserName}) {
     const [chatRefresh, setChatRefresh] = useState(0)
     const [friendsRefresh, setFriendsRefresh] = useState(0)
     const [friendsMode, setFriendsMode] = useState(false)
+    const [profileRefresh, setProfileRefresh] = useState(0)
     const wsRef = useRef(null)
     const genRef = useRef(0)
     const reconnectAttemptRef = useRef(0)
@@ -106,9 +107,13 @@ export default function HomePage({userName, setUserName}) {
         setFriendsMode(prev => !prev)
     }
 
+    function bumpProfileRefresh() {
+        setProfileRefresh(prev => prev + 1)
+    }
+
     return (
         <div className="h-screen flex flex-col">
-            <NavBar toggleChatMode={toggleChatMode} goHome={goHome} toggleFriendsMode={toggleFriendsMode} />
+            <NavBar toggleChatMode={toggleChatMode} goHome={goHome} toggleFriendsMode={toggleFriendsMode} profileRefresh={profileRefresh} />
             <section className="grid grid-cols-[1fr_5fr] m-2.75 gap-2.75 flex-1 min-h-0 grid-rows-[minmax(0,1fr)]">
                 <Sidebar chatMode={chatMode} friendsMode={friendsMode} toggleFriendsMode={toggleFriendsMode} toggleStatus={toggleStatus} setSelectedChat={setSelectedChat} chatRefresh={chatRefresh} friendsRefresh={friendsRefresh} />
                     {!friendsMode && chatMode && selectedChat && 
@@ -121,7 +126,7 @@ export default function HomePage({userName, setUserName}) {
                         <NewMessage setSelectedChat={setSelectedChat} bumpChatRefresh={bumpChatRefresh} />
                     }
                     {!friendsMode && !chatMode &&
-                        <SettingsPanel activeSettings={activeSettings} setUserName={setUserName} />
+                        <SettingsPanel activeSettings={activeSettings} setUserName={setUserName} bumpProfileRefresh={bumpProfileRefresh} />
                     }
                     {friendsMode &&
                         <FriendsView userName={userName}/>
