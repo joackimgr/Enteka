@@ -86,14 +86,21 @@ export default function Sidebar(props) {
 
 
     const chatBlocks = (chats || []).map((chat) => {
+        const unreadCount = chat.unread_count || 0
+        const isUnread = unreadCount > 0 && chat.chat_id !== props.selectedChat?.chat_id
         return (
             <div key={chat.chat_id} onClick={() => {props.setSelectedChat({chat_id: chat.chat_id, username: chat.other_username, profile_picture: chat.other_profile_picture})}} className="flex items-center gap-3 p-3 my-1.5 rounded-xl cursor-pointer bg-[#2F3347] hover:bg-[#363B52] transition-colors duration-100" >
                 <Avatar src={chat.other_profile_picture} size={45} />
                 <div className="min-w-0 flex-1">
-                    <p className="text-lg truncate text-white">{chat.other_username}</p>
+                    <div className="flex items-center justify-between gap-2">
+                        <p className={`text-lg truncate text-white ${isUnread ? "font-semibold" : ""}`}>{chat.other_username}</p>
+                        {isUnread && (
+                            <span className="shrink-0 min-w-5 h-5 px-1.5 rounded-full bg-[#7C6AF7] text-white text-xs flex items-center justify-center">{unreadCount}</span>
+                        )}
+                    </div>
                     <div className="flex justify-between">
-                        <p className="text-sm truncate text-gray-400">{chat.last_message || (chat.last_image ? "📷 Photo" : "")}</p>
-                        <p className="text-sm truncate text-gray-400">{chat.last_timestamp}</p>
+                        <p className={`text-sm truncate ${isUnread ? "text-white font-medium" : "text-gray-400"}`}>{chat.last_message || (chat.last_image ? "📷 Photo" : "")}</p>
+                        <p className={`text-sm truncate ${isUnread ? "text-white font-medium" : "text-gray-400"}`}>{chat.last_timestamp}</p>
                     </div>
                 </div>
             </div>

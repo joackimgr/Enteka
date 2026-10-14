@@ -87,6 +87,7 @@ export default function HomePage({userName, setUserName}) {
 
     function handleBack() {
         setSelectedChat(null)
+        bumpChatRefresh()
     }
 
     function goHome() {
@@ -115,7 +116,7 @@ export default function HomePage({userName, setUserName}) {
         <div className="h-screen flex flex-col">
             <NavBar toggleChatMode={toggleChatMode} goHome={goHome} toggleFriendsMode={toggleFriendsMode} profileRefresh={profileRefresh} />
             <section className="grid grid-cols-[1fr_5fr] m-2.75 gap-2.75 flex-1 min-h-0 grid-rows-[minmax(0,1fr)]">
-                <Sidebar chatMode={chatMode} friendsMode={friendsMode} toggleFriendsMode={toggleFriendsMode} toggleStatus={toggleStatus} setSelectedChat={setSelectedChat} chatRefresh={chatRefresh} friendsRefresh={friendsRefresh} />
+                <Sidebar chatMode={chatMode} friendsMode={friendsMode} toggleFriendsMode={toggleFriendsMode} toggleStatus={toggleStatus} setSelectedChat={setSelectedChat} selectedChat={selectedChat} chatRefresh={chatRefresh} friendsRefresh={friendsRefresh} />
                     {!friendsMode && chatMode && selectedChat && 
                         <ChatView selectedChat={selectedChat} handleBack={handleBack} bumpChatRefresh={bumpChatRefresh} userName={userName} />
                     }
