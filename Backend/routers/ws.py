@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, Query
-from db.database import get_user_by_username, insert_message, chat_belongs_to_user, get_other_participant
+from db.database import get_user_by_username, insert_message, chat_belongs_to_user, get_other_participant, get_latest_message_id, mark_chat_read
 from security.auth import verify_token
 from datetime import datetime
 from core import state
@@ -90,6 +90,14 @@ async def webSocket_endpoint(websocket: WebSocket, chat_id: int, token: str = Qu
                     await state.manager.broadcast({"type": "typing", "username": username}, chat_id, exclude=websocket)
                 elif msg_type == "stop_typing":
                     await state.manager.broadcast({"type": "stop_typing", "username": username}, chat_id, exclude=websocket)
+                elif msg_type == "read":
+                    last_id = get_latest_message_id(state.conn, chat_id)
+                    if last_id:
+                        mark_chat_read(state.conn, chat_id, caller_id, last_id)
+                        await state.manager.broadcast({"type": "messages_read",
+                                                       "user_id": caller_id,
+                                                       "last_read_message_id": last_id
+                                                       }, chat_id, exclude=websocket)
                 elif msg_type == "call_offer":
                     await state.manager.broadcast({"type": "call_offer", "username": username, "data": data.get("data")}, chat_id, exclude=websocket)
                 elif msg_type == "call_answer":

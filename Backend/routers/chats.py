@@ -63,7 +63,8 @@ async def chats_get(authorization: str = Header(None)):
                 "created_at": row[4],
                 "last_message": last_msg[0] if last_msg else None,
                 "last_image": last_msg[1] if last_msg else None,
-                "last_timestamp": last_msg[2].split()[1][:5] if last_msg else None
+                "last_timestamp": last_msg[2].split()[1][:5] if last_msg else None,
+                "unread_count": count_unread_messages(state.conn, row[0], caller_id)
             })
     return {"auth": True, "chats": formatted_chats}
 
@@ -90,7 +91,9 @@ async def messages_get(chat_id: int, authorization: str = Header(None)):
         chat_list = get_messages_by_chat_id(state.conn, chat_id)
         if chat_list is None:
             return {"auth": True, "messages": []}
-        messages = [{"id": msg[0], "sender_id": msg[1], "content": msg[2], "image": msg[3], "timestamp": msg[4].split()[1][:5], "is_mine": msg[1] == caller_id} for msg in chat_list]
+        other_user_id = get_other_participant(state.conn, chat_id, caller_id)
+        other_last_read = get_last_read_message_id(state.conn, chat_id, other_user_id) if other_user_id else 0
+        messages = [{"id": msg[0], "sender_id": msg[1], "content": msg[2], "image": msg[3], "timestamp": msg[4].split()[1][:5], "is_mine": msg[1] == caller_id, "read": msg[1] == caller_id and msg[0] <= other_last_read} for msg in chat_list]
         return {"auth": True, "messages": messages}
     else:
         return JSONResponse(status_code=403, content={"auth": False, "message": "Not a participant in this chat."})

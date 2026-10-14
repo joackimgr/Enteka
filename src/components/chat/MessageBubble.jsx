@@ -1,7 +1,8 @@
 import { useState } from "react"
+import { Check, CheckCheck } from "lucide-react"
 import { mediaUrl } from "../api/client"
 
-export default function MessageBubble({text, timestamp, isMine, imageUrl}) {
+export default function MessageBubble({text, timestamp, isMine, imageUrl, read}) {
     const [isOpen, setIsOpen] = useState(false)
     const src = mediaUrl(imageUrl)
 
@@ -18,7 +19,13 @@ export default function MessageBubble({text, timestamp, isMine, imageUrl}) {
                         />
                     )}
                     {text && <p className="text-white">{text}</p>}
-                    <p className={`text-xs ${isMine ? "text-white/65" : "text-gray-400"}`}>{timestamp}</p>
+                    <div className={`flex items-center gap-1 ${isMine ? "justify-end" : ""}`}>
+                        <p className={`text-xs ${isMine ? "text-white/65" : "text-gray-400"}`}>{timestamp}</p>
+                        {isMine && (read
+                            ? <CheckCheck size={14} className="text-[#C7BFFF]" aria-label="Read" />
+                            : <Check size={14} className="text-white/50" aria-label="Sent" />
+                        )}
+                    </div>
                 </div>
             </div>
             {isOpen && src && (
